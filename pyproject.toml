@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pawui"
-version = "0.1.0"
+version = "0.1.0.1"
 description = "轻量、直接运行的 Python 声明式 UI 层"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,6 +34,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["pawui*"]
+
+[tool.setuptools.data-files]
+"share/pawui/docs" = ["docs/*.md"]
 
 [tool.ruff]
 line-length = 100

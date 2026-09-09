@@ -8,6 +8,8 @@ pawui run <file.paw>       # Explicit run command
 pawui check <file.paw>     # Syntax check only (no rendering)
 pawui schema               # Print component JSON Schema
 pawui render <file.paw>    # Offscreen render self-check
+pawui help                 # List built-in doc topics
+pawui help <topic>         # Print a bundled doc (e.g. pawui help components)
 pawui --version            # Print version
 pawui --help               # Show help
 ```

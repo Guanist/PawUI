@@ -20,6 +20,7 @@ PawUI - 轻量、直接运行的 Python 声明式 UI 层
   pawui check <file.paw>      语法检查，不运行
   pawui schema                输出组件 Schema (JSON)
   pawui render <file.paw>     离屏渲染并输出信息
+  pawui help [topic]          显示随包文档（如 pawui help components）
   pawui --version             打印版本
   pawui --help                显示帮助
 
@@ -28,6 +29,7 @@ PawUI - 轻量、直接运行的 Python 声明式 UI 层
   pawui check app.paw
   pawui schema
   pawui render app.paw
+  pawui help theming
 """
 
 
@@ -158,6 +160,39 @@ SCHEMA = {
 }
 
 
+def _docs_dir() -> Path | None:
+    """随包文档目录：优先源码仓库 docs/，其次安装后的 share/pawui/docs。"""
+    candidates = (
+        Path(__file__).resolve().parent.parent / "docs",
+        Path(sys.prefix) / "share" / "pawui" / "docs",
+    )
+    for c in candidates:
+        if c.is_dir():
+            return c
+    return None
+
+
+def help_cmd(topic: str | None = None) -> int:
+    """显示随包文档：pawui help 列出主题，pawui help <topic> 打印全文。"""
+    d = _docs_dir()
+    if d is None:
+        print("PawUI: docs not found in this installation", file=sys.stderr)
+        return 1
+    if topic:
+        path = d / f"{topic}.md"
+        if not path.exists():
+            topics = ", ".join(sorted(p.stem for p in d.glob("*.md")))
+            print(f"PawUI: no doc topic '{topic}'. Available: {topics}", file=sys.stderr)
+            return 1
+        print(path.read_text(encoding="utf-8"))
+        return 0
+    topics = sorted(p.stem for p in d.glob("*.md"))
+    print("PawUI docs topics:")
+    for t in topics:
+        print(f"  pawui help {t}")
+    return 0
+
+
 def run(path: str | Path, context: dict[str, Any] | None = None, theme: str = "dark") -> None:
     """读取并运行一个 .paw 文件（阻塞，直到窗口关闭）。"""
     p = Path(path)
@@ -231,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     cmd = args[0]
-    if cmd in ("-h", "--help", "help"):
+    if cmd in ("-h", "--help"):
         print(USAGE)
         return 0
     if cmd in ("-v", "--version"):
@@ -253,6 +288,9 @@ def main(argv: list[str] | None = None) -> int:
             print("Usage: pawui render <file.paw>", file=sys.stderr)
             return 2
         return render(args[1])
+
+    if cmd == "help":
+        return help_cmd(args[1] if len(args) > 1 else None)
 
     file = args[1] if cmd == "run" else cmd
     if not file:

@@ -2,6 +2,13 @@
 
 轻量、直接运行的 Python 声明式 UI 层。HTML 风格，Qt/PySide6 渲染（原生抗锯齿、QSS 圆角/悬停/聚焦、IME 组字正常），无构建。
 
+## 安装
+
+```bash
+pip install pawui        # 依赖 PySide6>=6.5，自动安装
+python -m pip install --upgrade pawui
+```
+
 ## 运行
 
 ```bash
@@ -78,5 +85,7 @@ pawui run app.paw      # 运行（或直接 pawui app.paw）
 pawui check app.paw    # 仅语法检查
 pawui schema           # 输出组件 JSON Schema
 pawui render app.paw   # 离屏渲染自检
+pawui help             # 列出内置文档主题
+pawui help theming     # 查看某篇文档
 pawui --version
 ```
