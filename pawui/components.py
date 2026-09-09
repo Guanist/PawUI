@@ -126,6 +126,24 @@ class Component:
         for name in names:
             self.runtime.state.watch(name, lambda _: set_fn(resolve_template(template, self.scope, self.runtime)))
 
+    def _bind_key(self) -> str:
+        bind = self.props.get("bind", "")
+        if not isinstance(bind, str):
+            return ""
+        key = bind.strip()
+        if key.startswith("{"):
+            key = key[1:]
+        if key.endswith("}"):
+            key = key[:-1]
+        if key.startswith("$"):
+            key = key[1:]
+        return key.strip()
+
+    def _push_state(self, key: str, value: Any) -> None:
+        if getattr(self, "_suppress", False):
+            return
+        self.runtime.state.set(key, value)
+
 
 class Window(Component):
     is_container = True
@@ -243,11 +261,19 @@ class Input(Component):
             edit.textChanged.connect(lambda text: self.runtime.invoke(handler, text))
         if enter_handler:
             edit.returnPressed.connect(lambda: self.runtime.invoke(enter_handler, edit.text()))
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            edit.textChanged.connect(lambda text: self._push_state(bind, text))
         self.widget = edit
         value = self.props.get("value", "")
         if isinstance(value, str) and is_template(value):
+
             def _set(v: Any) -> None:
+                self._suppress = True
                 edit.setText(str(resolve_prop_value(v, self.scope, self.runtime)))
+                self._suppress = False
+
             self.bind_state(value, _set)
         return edit
 
@@ -302,6 +328,10 @@ class Checkbox(Component):
         self._toggle = toggle
         if handler:
             toggle.toggled.connect(lambda checked: self.runtime.invoke(handler, checked))
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            toggle.toggled.connect(lambda checked: self._push_state(bind, checked))
         return wrap
 
 
@@ -347,8 +377,21 @@ class Slider(Component):
         )
         if handler:
             slider.valueChanged.connect(lambda v: self.runtime.invoke(handler, v))
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            slider.valueChanged.connect(lambda v: self._push_state(bind, v))
         self.widget = slider
         self._slider = slider
+        value = self.props.get("value", None)
+        if isinstance(value, str) and is_template(value):
+
+            def _set(v: Any) -> None:
+                self._suppress = True
+                slider.setValue(int(resolve_prop_value(v, self.scope, self.runtime)))
+                self._suppress = False
+
+            self.bind_state(value, _set)
         return slider
 
 

@@ -218,6 +218,11 @@ class Runtime:
                          delay_bonus: int = 0) -> Component:
         cdef = self.components[element.tag]
         comp_scope = dict(scope)
+        for child in cdef.root.children:
+            if child.tag == "Prop":
+                name = str(child.props.get("name", "")).strip()
+                if name and name not in element.props:
+                    comp_scope[name] = resolve_prop_value(child.props.get("default", ""), scope, self)
         for k, v in element.props.items():
             if k.startswith("on_"):
                 comp_scope[k] = resolve_handler(v, scope, self)
@@ -227,6 +232,8 @@ class Runtime:
                 comp_scope[k] = resolve_prop_value(v, scope, self)
         result: Component | None = None
         for child in cdef.root.children:
+            if child.tag in ("Prop",):
+                continue
             result = self._build_element(child, parent, comp_scope, delay_bonus)
         if result is None:
             raise RenderError(f"component <{element.tag}> has no body", cdef.pos)
