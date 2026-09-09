@@ -82,6 +82,7 @@ def increment():
 
 ```bash
 pawui run app.paw      # 运行（或直接 pawui app.paw）
+pawui watch app.paw    # 热重载：保存即重建窗口
 pawui check app.paw    # 仅语法检查
 pawui schema           # 输出组件 JSON Schema
 pawui render app.paw   # 离屏渲染自检

@@ -261,6 +261,19 @@ class Runtime:
             return
         QTimer.singleShot(0, self._rebuild)
 
+    def reload(self, source: str) -> None:
+        """热重载：重新解析 source 并重建 UI。保留 State 对象与命名空间函数。"""
+        self.program = parse(source, self.filename)
+        self.components.clear()
+        self._built = False
+        self._prepare()
+        if self.root is not None:
+            old = self.root
+            self.root = None
+            old.close()
+            old.deleteLater()
+        self._build_tree()
+
     def _rebuild(self) -> None:
         if self.root is not None:
             old = self.root

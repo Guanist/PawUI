@@ -259,6 +259,51 @@ Attaches a hover tooltip to wrapped child widget(s).
 </Tooltip>
 ```
 
+## Two-Way Binding
+
+Form components accept a `bind` prop. The value is written back to `state`
+when the user changes the widget; the widget keeps updating from `state` too.
+
+| Component | `bind` writes |
+|-----------|---------------|
+| `Input` | text (string) |
+| `Checkbox` | checked (bool) |
+| `Slider` | value (int) |
+
+```html
+<Input bind="name"/>
+<Checkbox bind="enabled">Enable</Checkbox>
+<Slider min="0" max="10" bind="volume"/>
+```
+
+`bind` accepts `name`, `$name` or `{$name}`. Pair it with `value="{$name}"`
+when the initial value should also come from state:
+
+```html
+<Input bind="name" value="{$name}"/>
+```
+
+## Default Props
+
+Custom components can declare defaults. Any `name` the caller does not pass
+falls back to `default`:
+
+```html
+<Component name="Card">
+  <Prop name="label" default="Untitled"/>
+  <Prop name="value" default="{$count}"/>
+  <Column>
+    <Text color="subtext">{$label}</Text>
+    <Text size="22" bold>{$value}</Text>
+  </Column>
+</Component>
+```
+
+```html
+<Card/>              <!-- label="Untitled", value={$count} -->
+<Card label="Hi"/>   <!-- label="Hi" -->
+```
+
 ## Animation Props (All Elements)
 
 | Prop | Type | Default | Description |

@@ -18,17 +18,21 @@ Top level: `<Window>` (exactly one), `<Theme>`, `<Component>`, `<script>`, `<!--
 | `Column` / `Row` | `padding spacing bg radius expand stagger` |
 | `Text` | `size bold italic color` — text between tags |
 | `Button` | `on_click bg fg size radius disabled` — label between tags |
-| `Input` | `placeholder value on_change on_enter size` — self-close |
-| `Checkbox` | `checked on_change size` — renders a switch; label between tags |
+| `Input` | `placeholder value on_change on_enter size bind` — self-close |
+| `Checkbox` | `checked on_change size bind` — renders a switch; label between tags |
 | `Divider` | `color thickness` |
 | `Spacer` | `width height` |
-| `Slider` | `min max value step on_change accent bg` |
+| `Slider` | `min max value step on_change accent bg bind` |
 | `Progress` | `value max height text accent bg` |
 | `Tabs` | child `<Tab label="…">…</Tab>` pages; `bg` |
 | `Image` | `src width height cover` |
 | `Tooltip` | `text` / text between tags; wraps one child with hover tip |
 | `If` | `condition` — `{$flag}` or `true/false/yes/on/1`; renders children when truthy |
 | `For` | `each` (loop var, default `item`) + `in="{$list}"`; supports nested loops, `{$item.name}`, `{$row[0]}` |
+
+Two-way binding: `bind="name"` writes the widget value back to `state`
+(Input text, Checkbox bool, Slider int); pair with `value="{$name}"` for the
+initial value. `<Component>` can declare defaults via `<Prop name default/>`.
 
 All elements: `animate="fade\|reveal\|slide-up\|slide-down\|slide-left\|slide-right"` `duration`(ms) `delay`(ms) `easing="out-cubic\|out-back\|out-elastic\|in-out-cubic\|linear"`.
 

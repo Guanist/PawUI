@@ -17,6 +17,7 @@ PawUI - 轻量、直接运行的 Python 声明式 UI 层
 用法:
   pawui <file.paw>            直接运行一个 .paw 文件
   pawui run <file.paw>        同上（显式子命令）
+  pawui watch <file.paw>      热重载：文件变化自动重建窗口
   pawui check <file.paw>      语法检查，不运行
   pawui schema                输出组件 Schema (JSON)
   pawui render <file.paw>     离屏渲染并输出信息
@@ -206,6 +207,8 @@ SCHEMA = {
         "interpolation": ["{$var}", "{var}", "$var", "{$item.name}", "{$items[0]}"],
         "events": "on_click=\"handler\" / on_change=\"handler\" / on_enter=\"handler\"",
         "components": "<Component name=\"Name\">...<Component/>",
+        "default_props": "<Component name=\"Card\"><Prop name=\"label\" default=\"x\"/>...</Component>",
+        "binding": "bind=\"name\" (Input/Checkbox/Slider writes back to state)",
         "control_flow": "<If condition=\"{$flag}\">...</If> / <For each=\"item\" in=\"{$items}\">...</For>",
         "script": "<script>def handler(): pass</script>",
     },
@@ -311,6 +314,47 @@ def render(path: str | Path) -> int:
         return 1
 
 
+def watch(path: str | Path) -> int:
+    """热重载：监视文件，变化时重建窗口。"""
+    p = Path(path)
+    if not p.exists():
+        print(f"PawUI: file not found: {p}", file=sys.stderr)
+        return 1
+
+    from PySide6.QtCore import QTimer
+
+    source = p.read_text(encoding="utf-8")
+    rt = Runtime(source, str(p))
+    rt.run(block=False)
+    last: tuple[int, int] = (p.stat().st_mtime_ns, p.stat().st_size)
+
+    def poll() -> None:
+        nonlocal last
+        try:
+            now = (p.stat().st_mtime_ns, p.stat().st_size)
+        except OSError:
+            return
+        if now == last:
+            return
+        last = now
+        print(f"  ↻ {p.name} changed, rebuilding…", file=sys.stderr)
+        try:
+            rt.reload(p.read_text(encoding="utf-8"))
+            print("  ✓ reloaded", file=sys.stderr)
+        except PyxError as e:
+            print(e.formatted(), file=sys.stderr)
+        except Exception as e:
+            print(f"PawUI rebuild error: {e}", file=sys.stderr)
+
+    timer = QTimer()
+    timer.setInterval(400)
+    timer.timeout.connect(poll)
+    timer.start()
+    rt.app.exec()
+    timer.stop()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
@@ -334,6 +378,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if cmd == "schema":
         return schema_cmd()
+
+    if cmd == "watch":
+        if len(args) < 2:
+            print("Usage: pawui watch <file.paw>", file=sys.stderr)
+            return 2
+        return watch(args[1])
 
     if cmd == "render":
         if len(args) < 2:
