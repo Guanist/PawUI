@@ -68,7 +68,7 @@ def increment():
 
 ## 内置组件
 
-`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer` `If`（条件渲染） `For`（列表循环）
+`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer` `Slider` `Progress` `Tabs` `Image` `Tooltip` `If`（条件渲染） `For`（列表循环）
 
 ```html
 <For each="item" in="{$items}">

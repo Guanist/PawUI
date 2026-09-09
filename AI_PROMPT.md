@@ -22,6 +22,11 @@ Top level: `<Window>` (exactly one), `<Theme>`, `<Component>`, `<script>`, `<!--
 | `Checkbox` | `checked on_change size` — renders a switch; label between tags |
 | `Divider` | `color thickness` |
 | `Spacer` | `width height` |
+| `Slider` | `min max value step on_change accent bg` |
+| `Progress` | `value max height text accent bg` |
+| `Tabs` | child `<Tab label="…">…</Tab>` pages; `bg` |
+| `Image` | `src width height cover` |
+| `Tooltip` | `text` / text between tags; wraps one child with hover tip |
 | `If` | `condition` — `{$flag}` or `true/false/yes/on/1`; renders children when truthy |
 | `For` | `each` (loop var, default `item`) + `in="{$list}"`; supports nested loops, `{$item.name}`, `{$row[0]}` |
 

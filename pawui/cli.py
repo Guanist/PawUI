@@ -122,6 +122,57 @@ SCHEMA = {
             },
             "description": "Empty space (self-closing)",
         },
+        "Slider": {
+            "props": {
+                "min": {"type": "integer", "default": 0},
+                "max": {"type": "integer", "default": 100},
+                "value": {"type": "integer", "default": 0},
+                "step": {"type": "integer", "default": 1},
+                "on_change": {"type": "string", "description": "Handler(value)"},
+                "accent": {"type": "string", "default": "accent"},
+                "bg": {"type": "string", "default": "border"},
+            },
+            "description": "Horizontal value slider (self-closing)",
+        },
+        "Progress": {
+            "props": {
+                "value": {"type": "integer", "default": 0},
+                "max": {"type": "integer", "default": 100},
+                "height": {"type": "integer", "default": 10},
+                "text": {"type": "boolean", "default": False},
+                "accent": {"type": "string", "default": "accent"},
+                "bg": {"type": "string", "default": "surface"},
+            },
+            "description": "Progress bar (self-closing)",
+        },
+        "Tabs": {
+            "props": {"bg": {"type": "string", "default": "background"}},
+            "description": "Tabbed container; children are pages (use <Tab label=...>)",
+        },
+        "Image": {
+            "props": {
+                "src": {"type": "string", "description": "Image path or source"},
+                "width": {"type": "integer", "description": "Target width"},
+                "height": {"type": "integer", "description": "Target height"},
+                "cover": {"type": "boolean", "default": False},
+            },
+            "description": "Image display (self-closing)",
+        },
+        "Tooltip": {
+            "props": {"text": {"type": "string", "description": "Tooltip text"}},
+            "description": "Wraps a child; hover shows tooltip",
+        },
+        "If": {
+            "props": {"condition": {"type": "boolean", "description": "Render when truthy"}},
+            "description": "Conditional logical container",
+        },
+        "For": {
+            "props": {
+                "each": {"type": "string", "default": "item"},
+                "in": {"type": "array", "description": "List reference ({$items})"},
+            },
+            "description": "List loop logical container",
+        },
     },
     "animation_props": {
         "animate": {
@@ -152,9 +203,10 @@ SCHEMA = {
         "custom_colors": {"type": "object", "description": "Additional named colors"},
     },
     "syntax": {
-        "interpolation": ["{$var}", "{var}", "$var"],
+        "interpolation": ["{$var}", "{var}", "$var", "{$item.name}", "{$items[0]}"],
         "events": "on_click=\"handler\" / on_change=\"handler\" / on_enter=\"handler\"",
         "components": "<Component name=\"Name\">...<Component/>",
+        "control_flow": "<If condition=\"{$flag}\">...</If> / <For each=\"item\" in=\"{$items}\">...</For>",
         "script": "<script>def handler(): pass</script>",
     },
 }
@@ -186,9 +238,9 @@ def help_cmd(topic: str | None = None) -> int:
             return 1
         print(path.read_text(encoding="utf-8"))
         return 0
-    topics = sorted(p.stem for p in d.glob("*.md"))
+    topics_list = sorted(p.stem for p in d.glob("*.md"))
     print("PawUI docs topics:")
-    for t in topics:
+    for t in topics_list:
         print(f"  pawui help {t}")
     return 0
 

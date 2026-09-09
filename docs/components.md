@@ -173,6 +173,92 @@ List loop (logical container, no visual border).
 Supports nested `<For>`, `<If>` inside loops, and attribute/index access
 (`{$item.name}`, `{$row[0]}`) on the loop value.
 
+## Slider
+
+Horizontal value slider.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `min` | int | 0 | Minimum value |
+| `max` | int | 100 | Maximum value |
+| `value` | int | min | Initial value |
+| `step` | int | 1 | Single step |
+| `on_change` | string | - | Handler(value) |
+| `accent` | color | theme.accent | Track fill + handle color |
+| `bg` | color | theme.border | Track background |
+
+```html
+<Slider min="0" max="100" value="40" on_change="on_volume"/>
+```
+
+## Progress
+
+Progress bar.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | int | 0 | Current value (bindable) |
+| `max` | int | 100 | Maximum value |
+| `height` | int | 10 | Bar height (px) |
+| `text` | bool | false | Show percentage text |
+| `accent` | color | theme.accent | Fill color |
+| `bg` | color | theme.surface | Track color |
+
+```html
+<Progress value="{$pct}" max="100"/>
+```
+
+## Tabs
+
+Tabbed container. Direct children act as pages; use a `label` prop for the
+tab text, or wrap content in `<Tab label="...">`.
+
+```html
+<Tabs>
+  <Tab label="Overview">
+    <Text>First tab</Text>
+  </Tab>
+  <Tab label="Details">
+    <Text>Second tab</Text>
+  </Tab>
+</Tabs>
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | string | tag | Tab title (on child `<Tab>` or directly on a child) |
+| `bg` | color | theme.background | Pane background |
+
+## Image
+
+Displays an image (file path or loadable source).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `src` | string | - | Image path or source |
+| `width` | int | native | Target width (scaled) |
+| `height` | int | - | Target height (with `cover`) |
+| `cover` | bool | false | Cover-crop instead of width-fit |
+
+```html
+<Image src="logo.png" width="120"/>
+```
+
+## Tooltip
+
+Attaches a hover tooltip to wrapped child widget(s).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `text` | string | content | Tooltip text |
+| `content` | string | - | Text between the tags as tooltip |
+
+```html
+<Tooltip text="Save the file">
+  <Button on_click="save">Save</Button>
+</Tooltip>
+```
+
 ## Animation Props (All Elements)
 
 | Prop | Type | Default | Description |

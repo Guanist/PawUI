@@ -6,18 +6,22 @@ Qt 原生抗锯齿、QSS 圆角/悬停/聚焦态、IME 组字全部由 Qt 处理
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QPainter
+from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
+    QSlider,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -322,6 +326,142 @@ class Spacer(Component):
         return w
 
 
+class Slider(Component):
+    def build(self) -> QSlider:
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setMinimum(self.opt_int("min", 0))
+        slider.setMaximum(self.opt_int("max", 100))
+        slider.setSingleStep(self.opt_int("step", 1))
+        slider.setValue(self.opt_int("value", slider.minimum()))
+        slider.setCursor(Qt.CursorShape.PointingHandCursor)
+        accent = self.opt_color("accent", self.theme.accent)
+        bg = self.opt_color("bg", self.theme.border)
+        slider.setStyleSheet(
+            f"""
+            QSlider::groove:horizontal {{ background:{bg}; height:6px; border-radius:3px; }}
+            QSlider::sub-page:horizontal {{ background:{accent}; border-radius:3px; }}
+            QSlider::handle:horizontal {{ background:#fff; width:16px; margin:-5px 0;
+                border-radius:8px; border:2px solid {accent}; }}
+            """
+        )
+        if handler:
+            slider.valueChanged.connect(lambda v: self.runtime.invoke(handler, v))
+        self.widget = slider
+        self._slider = slider
+        return slider
+
+
+class Progress(Component):
+    def build(self) -> QProgressBar:
+        bar = QProgressBar()
+        bar.setRange(0, self.opt_int("max", 100))
+        bar.setValue(self.opt_int("value", 0))
+        bar.setFixedHeight(self.opt_int("height", 10))
+        bar.setTextVisible(self.opt_bool("text", False))
+        accent = self.opt_color("accent", self.theme.accent)
+        bg = self.opt_color("bg", self.theme.surface)
+        bar.setStyleSheet(
+            f"""
+            QProgressBar {{ background-color:{bg}; border:none; border-radius:5px; }}
+            QProgressBar::chunk {{ background-color:{accent}; border-radius:5px; }}
+            """
+        )
+        self.widget = bar
+        self._bar = bar
+        value = self.props.get("value", None)
+        if isinstance(value, str) and is_template(value):
+            self.bind_state(value, lambda v: bar.setValue(int(resolve_prop_value(v, self.scope, self.runtime))))
+        return bar
+
+
+class Tabs(Component):
+    is_container = False
+
+    def build(self) -> QTabWidget:
+        tabs = QTabWidget()
+        bg = self.opt_color("bg", self.theme.background)
+        tabs.setStyleSheet(
+            f"""
+            QTabBar::tab {{ background:{self.theme.surface}; color:{self.theme.subtext};
+                padding:8px 18px; border:none; border-top-left-radius:8px; border-top-right-radius:8px; }}
+            QTabBar::tab:selected {{ background:{bg}; color:{self.theme.text}; }}
+            QTabWidget::pane {{ border:1px solid {self.theme.border}; border-radius:0 0 8px 8px; }}
+            """
+        )
+        self.widget = tabs
+        self.layout = None  # 子元素由 _build_children 直接 addTab 到 widgets
+        self._tabs = tabs
+        for child in self.element.children:
+            page = QWidget()
+            page_lay = QVBoxLayout(page)
+            page_lay.setContentsMargins(12, 12, 12, 12)
+            label = str(resolve_prop_value(child.props.get("label", "Tab"), self.scope, self.runtime))
+            if child.tag == "Tab":
+                for inner in child.children:
+                    inner_comp = self.runtime._build_element(inner, self, self.scope)
+                    if inner_comp.widget is not None:
+                        page_lay.addWidget(inner_comp.widget)
+            else:
+                child_comp = self.runtime._build_element(child, self, self.scope)
+                if child_comp.widget is not None:
+                    page_lay.addWidget(child_comp.widget)
+            page_lay.addStretch(1)
+            self._tabs.addTab(page, label)
+        return tabs
+
+
+class Image(Component):
+    def build(self) -> QLabel:
+        label = QLabel()
+        src = self.opt_str("src", "")
+        path = Path(src)
+        if path.is_file():
+            pixmap = QPixmap(str(path))
+        else:
+            pixmap = QPixmap(src)
+        if pixmap.isNull() and src:
+            from .errors import RenderError
+            raise RenderError(f"image not found: {src}", self.element.pos)
+        if self.opt_bool("cover", False) and not pixmap.isNull():
+            pixmap = pixmap.scaled(
+                self.opt_int("width", 0),
+                self.opt_int("height", 0) or pixmap.height(),
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        elif not pixmap.isNull():
+            pixmap = pixmap.scaledToWidth(
+                self.opt_int("width", pixmap.width()),
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        if not pixmap.isNull():
+            label.setPixmap(pixmap)
+        self.widget = label
+        self._pixmap = pixmap
+        return label
+
+
+class Tooltip(Component):
+    is_container = True
+
+    def build(self) -> QWidget:
+        wrap = QWidget()
+        lay = QVBoxLayout(wrap)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        hover = self.resolved_content().strip()
+        for child in self.element.children:
+            child_comp = self.runtime._build_element(child, self, self.scope)
+            sub = child_comp.widget
+            if isinstance(sub, QWidget) and (hover or self.opt_str("text", "")):
+                sub.setToolTip(hover or self.opt_str("text", ""))
+            lay.addWidget(sub)
+        self.widget = wrap
+        self.layout = lay
+        return wrap
+
+
 BUILTINS: dict[str, type[Component]] = {
     "Window": Window,
     "Column": Column,
@@ -332,4 +472,9 @@ BUILTINS: dict[str, type[Component]] = {
     "Checkbox": Checkbox,
     "Divider": Divider,
     "Spacer": Spacer,
+    "Slider": Slider,
+    "Progress": Progress,
+    "Tabs": Tabs,
+    "Image": Image,
+    "Tooltip": Tooltip,
 }
