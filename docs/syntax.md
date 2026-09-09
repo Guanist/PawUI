@@ -34,9 +34,18 @@ Three equivalent syntaxes:
 ```
 
 Rules:
-- Single identifier only (no expressions)
+- Names (plus attribute / index paths): `{$user.name}`, `{$items[0]}`, `{$row[0].label}`
 - Resolves from: component props → state → script namespace → theme colors
 - Computed values go in `<script>`
+
+## Control Flow
+
+```html
+<If condition="{$logged_in}">...</If>
+<For each="item" in="{$items}">...</For>
+```
+
+See [State & Scripts](state-scripts.md#control-flow).
 
 ## Events
 

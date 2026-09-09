@@ -8,6 +8,7 @@ from pawui.resolve import (
     is_template,
     resolve_handler,
     resolve_prop_value,
+    resolve_raw,
     resolve_template,
 )
 from pawui.state import State
@@ -136,6 +137,45 @@ class TestResolveTemplate:
         runtime.namespace["get_value"] = get_value
         result = resolve_template("{$get_value}", scope, runtime)
         assert result == "called"
+
+    def test_attribute_path(self, runtime, scope):
+        scope["item"] = {"name": "Alice", "meta": {"level": 3}}
+        assert resolve_template("{$item.name}", scope, runtime) == "Alice"
+        assert resolve_template("{$item.meta.level}", scope, runtime) == "3"
+
+    def test_index_path(self, runtime, scope):
+        scope["items"] = ["a", "b", "c"]
+        assert resolve_template("{$items[1]}", scope, runtime) == "b"
+
+    def test_mixed_dollar_path(self, runtime, scope):
+        scope["item"] = {"label": "x"}
+        assert resolve_template("$item.label", scope, runtime) == "x"
+
+    def test_attr_fallback_to_item(self, runtime, scope):
+        scope["item"] = {"name": "Bob"}
+        assert resolve_template("{$item.name}", scope, runtime) == "Bob"
+
+
+class TestResolveRaw:
+    def test_returns_list_for_single_ref(self, runtime, scope):
+        runtime.state.set("items", [1, 2, 3])
+        assert resolve_raw("{$items}", scope, runtime) == [1, 2, 3]
+
+    def test_returns_dict_for_dollar_ref(self, runtime, scope):
+        scope["data"] = {"k": "v"}
+        assert resolve_raw("$data", scope, runtime) == {"k": "v"}
+
+    def test_falls_back_for_plain_string(self, runtime, scope):
+        assert resolve_raw("hello", scope, runtime) == "hello"
+
+    def test_falls_back_for_interpolated(self, runtime, scope):
+        runtime.state.set("a", 1)
+        assert resolve_raw("val={$a}", scope, runtime) == "val=1"
+
+    def test_symbol_returns_object(self, runtime, scope):
+        runtime.state.set("things", [9, 8])
+        result = resolve_raw(Symbol(name="things", pos=None), scope, runtime)
+        assert result == [9, 8]
 
 
 class TestResolveHandler:

@@ -85,6 +85,7 @@ def parse(source: str, filename: str = "<memory>") -> Program
 
 ```python
 def resolve_prop_value(value: Any, scope: dict, runtime: Runtime) -> Any
+def resolve_raw(value: Any, scope: dict, runtime: Runtime) -> Any
 def resolve_template(template: str, scope: dict, runtime: Runtime) -> str
 def resolve_handler(value: Any, scope: dict, runtime: Runtime) -> Any
 def is_template(v: Any) -> bool

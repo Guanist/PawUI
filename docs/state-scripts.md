@@ -89,6 +89,37 @@ def toggle_theme():
 app.refresh()
 ```
 
+## Control Flow
+
+Conditional rendering with `<If>`:
+
+```html
+<Window>
+    <If condition="{$logged_in}">
+        <Text>Welcome back!</Text>
+    </If>
+</Window>
+```
+
+The `condition` prop accepts a resolved boolean, a state reference (`{$flag}`)
+or a literal string (`true` / `yes` / `on` / `1`).
+
+Looping with `<For>`:
+
+```html
+<Window>
+    <For each="item" in="{$items}">
+        <Text>{$item.name} — {$item.price}$</Text>
+    </For>
+</Window>
+```
+
+- `each` — the loop variable name (defaults to `item`).
+- `in` — a state/namespace reference to a list (use `{$items}` so the raw
+  list is used, not its string form).
+- Supports nested loops and `<If>` inside a loop, with full attribute /
+  index access on the loop value: `{$item.name}`, `{$row[0]}`.
+
 ## Best Practices
 
 1. **Keep logic in script** - No expressions in markup

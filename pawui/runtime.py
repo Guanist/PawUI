@@ -6,16 +6,18 @@ import inspect
 from typing import Any
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from .animate import entrance, is_animation
 from .components import BUILTINS, Component
 from .errors import ComponentError, RenderError, ScriptError
 from .nodes import ComponentDef, Element, Program
 from .parser import parse
-from .resolve import is_template, resolve_handler, resolve_prop_value
+from .resolve import is_template, resolve_handler, resolve_prop_value, resolve_raw
 from .state import State
 from .theme import THEMES, Theme
+
+LOGICAL_TAGS = {"If", "For"}
 
 
 class Runtime:
@@ -131,6 +133,8 @@ class Runtime:
             comp = self._build_component(element, parent, scope, delay_bonus)
             self._animate(comp.widget, element.props, scope, delay_bonus)
             return comp
+        if tag in LOGICAL_TAGS:
+            return self._build_logical(element, parent, scope, delay_bonus)
         cls = BUILTINS.get(tag)
         if cls is None:
             raise RenderError(f"unknown component <{tag}>", element.pos)
@@ -143,6 +147,56 @@ class Runtime:
                 child_comp = self._build_element(child, comp, scope, delay_bonus + i * stagger)
                 comp.layout.addWidget(child_comp.widget, child_comp.stretch())  # type: ignore[attr-defined]
             comp.layout.addStretch(1)  # type: ignore[attr-defined]
+        return comp
+
+    def _build_logical(self, element: Element, parent: Component | None, scope: dict,
+                       delay_bonus: int = 0) -> Component:
+        """<If> / <For>：透明逻辑容器，不产生可见边框。"""
+        tag = element.tag
+        if tag not in LOGICAL_TAGS:
+            raise RenderError(f"unknown logical tag <{tag}>", element.pos)
+        comp = Component(self, parent, element, scope)
+        box = QWidget()
+        lay = QVBoxLayout(box)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(self.theme.spacing if hasattr(self.theme, "spacing") else 0)
+        box.setObjectName("__pawui_logical__")
+        comp.widget = box
+        comp.layout = lay  # type: ignore[attr-defined]
+
+        pairs: list[tuple[Element, dict]]
+        if tag == "For":
+            each = str(resolve_prop_value(element.props.get("each", "item"), scope, self))
+            items = resolve_raw(element.props.get("in", []), scope, self)
+            if isinstance(items, str):
+                items = [items]
+            elif items is None:
+                items = []
+            elif not isinstance(items, (list, tuple)):
+                try:
+                    items = list(items)
+                except TypeError:
+                    items = [items]
+            pairs = []
+            for item in items:
+                item_scope = dict(scope)
+                item_scope[each] = item
+                for child in element.children:
+                    pairs.append((child, item_scope))
+        else:
+            condition = resolve_raw(element.props.get("condition"), scope, self)
+            if isinstance(condition, str):
+                show = condition.strip().lower() in ("1", "true", "yes", "on")
+            else:
+                show = bool(condition)
+            pairs = [(c, scope) for c in element.children] if show else []
+
+        stagger = comp.opt_int("stagger", 0)
+        for i, (child_el, child_scope) in enumerate(pairs):
+            child_comp = self._build_element(child_el, comp, child_scope, delay_bonus + i * stagger)
+            lay.addWidget(child_comp.widget, child_comp.stretch())  # type: ignore[arg-type]
+        lay.addStretch(1)  # type: ignore[attr-defined]
+        self._animate(box, element.props, scope, delay_bonus)
         return comp
 
     def _animate(self, widget: QWidget | None, props: dict, scope: dict, delay_bonus: int) -> None:

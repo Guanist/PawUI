@@ -7,8 +7,11 @@ from typing import Any
 
 from .nodes import Symbol
 
+# 匹配 {$a.b[0]} / {a.b[0]} / $a.b[0] 三种插值形式，支持属性/索引路径。
 runtime_refs_re = re.compile(
-    r"\{\$([A-Za-z_][A-Za-z0-9_]*)\}|\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)"
+    r"\{\$([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]\s]+\])*)\}"
+    r"|\{([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]\s]+\])*)\}"
+    r"|\$([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]\s]+\])*)"
 )
 
 
@@ -20,12 +23,18 @@ def _ref_of(match: re.Match) -> str:
     return match.group(1) or match.group(2) or match.group(3) or ""
 
 
+def _base_name(ref: str) -> str:
+    return ref.split(".", 1)[0].split("[", 1)[0]
+
+
 def runtime_refs(template: str) -> list[str]:
     out: list[str] = []
     for m in runtime_refs_re.finditer(template):
-        g = _ref_of(m)
-        if g:
-            out.append(g)
+        ref = _ref_of(m)
+        if ref:
+            base = _base_name(ref)
+            if base not in out:
+                out.append(base)
     return out
 
 
@@ -42,6 +51,48 @@ def _lookup_name(name: str, scope: dict, runtime: Any, fallback: Any = "") -> An
     if name in custom:
         return custom[name]
     return fallback
+
+
+def _resolve_path(ref: str, scope: dict, runtime: Any) -> Any:
+    """求值一个可能带属性/索引路径的引用：``item.name`` / ``items[0]``。"""
+    base = _base_name(ref)
+    value = _lookup_name(base, scope, runtime)
+    rest = ref[len(base):]
+    i = 0
+    while i < len(rest):
+        c = rest[i]
+        if c == ".":
+            j = i + 1
+            while j < len(rest) and (rest[j].isalnum() or rest[j] == "_"):
+                j += 1
+            name = rest[i + 1:j]
+            try:
+                value = getattr(value, name)
+            except (AttributeError, TypeError):
+                try:
+                    value = value[name]
+                except Exception:
+                    return ""
+            i = j
+        elif c == "[":
+            j = rest.find("]", i)
+            if j == -1:
+                return ""
+            idx_key = rest[i + 1:j].strip()
+            if len(idx_key) >= 2 and idx_key[0] in "\"'" and idx_key[-1] == idx_key[0]:
+                key: Any = idx_key[1:-1]
+            elif idx_key.isdigit():
+                key = int(idx_key)
+            else:
+                key = idx_key
+            try:
+                value = value[key]
+            except Exception:
+                return ""
+            i = j + 1
+        else:
+            break
+    return value
 
 
 def resolve_symbol(sym: Symbol, scope: dict, runtime: Any) -> Any:
@@ -61,6 +112,25 @@ def resolve_prop_value(value: Any, scope: dict, runtime: Any) -> Any:
         if name in custom:
             return custom[name]
     return value
+
+
+def resolve_raw(value: Any, scope: dict, runtime: Any) -> Any:
+    """尽量取原始对象值：单个模板引用返回其底层对象（list/dict/...）而非常规化字符串。
+
+    用于需要集合的字面量，如 ``<For in="{$items}">``。
+    """
+    if isinstance(value, Symbol):
+        return resolve_symbol(value, scope, runtime)
+    if isinstance(value, str) and is_template(value):
+        refs = runtime_refs(value)
+        stripped = value.strip()
+        if len(refs) == 1 and stripped in (
+            f"{{${refs[0]}}}",
+            f"{{{refs[0]}}}",
+            f"${refs[0]}",
+        ):
+            return _resolve_path(refs[0], scope, runtime)
+    return resolve_prop_value(value, scope, runtime)
 
 
 def resolve_handler(value: Any, scope: dict, runtime: Any) -> Any:
@@ -85,9 +155,10 @@ def resolve_template(template: str, scope: dict, runtime: Any, _seen=None) -> st
 
     def repl(match) -> str:
         ref = _ref_of(match)
-        value = _resolve_named(ref, scope, runtime)
-        if isinstance(value, str) and is_template(value) and ref not in seen:
-            seen.add(ref)
+        value = _resolve_path(ref, scope, runtime)
+        base = _base_name(ref)
+        if isinstance(value, str) and is_template(value) and base not in seen:
+            seen.add(base)
             value = resolve_template(value, scope, runtime, seen)
         if callable(value):
             value = runtime.invoke(value)
