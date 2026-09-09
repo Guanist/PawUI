@@ -1,0 +1,63 @@
+<!-- PawUI 示例：HTML 风格 + 自定义配色 + 入场动画 + 状态绑定 + 组件 -->
+
+<Theme extends="dark">
+  <Color name="accent" value="#8b5cf6"/>
+  <Color name="surface" value="#20222e"/>
+  <Color name="brand" value="#22d3ee"/>
+</Theme>
+
+<Window title="PawUI 演示" width="470" height="860" theme="dark">
+  <Column padding="24" spacing="12" stagger="55">
+    <Text size="24" bold animate="slide-up">欢迎使用 PawUI 👋</Text>
+    <Text size="13" color="subtext" animate="slide-up">轻量、直接运行的 Python 声明式 UI 层</Text>
+
+    <Divider spacing="6" animate="fade"/>
+
+    <Text size="15" color="brand" animate="slide-up">{$greeting}</Text>
+    <Text size="13" color="subtext" animate="slide-up">已经点击了 {$count} 次</Text>
+
+    <Row spacing="8" animate="slide-up">
+      <Button on_click="increment">点我 +1</Button>
+      <Button on_click="reset" bg="surface" fg="text">清空</Button>
+    </Row>
+
+    <Divider spacing="6" animate="fade"/>
+
+    <Input placeholder="输入你的名字..." on_change="on_name" animate="slide-up"/>
+    <Text size="14" color="subtext" animate="slide-up">你好，{$name}</Text>
+
+    <Divider spacing="6" animate="fade"/>
+
+    <StatCard label="点击量" value="{$count}" animate="slide-up"/>
+    <StatCard label="用户名" value="{$name}" animate="slide-up"/>
+
+    <Spacer height="6"/>
+    <Checkbox checked="{$theme_light}" on_change="toggle_theme" animate="fade">浅色模式</Checkbox>
+  </Column>
+</Window>
+
+<Component name="StatCard">
+  <Column padding="12" spacing="2" bg="surface">
+    <Text size="12" color="subtext">{$label}</Text>
+    <Text size="22" bold>{$value}</Text>
+  </Column>
+</Component>
+
+<script>
+def increment():
+    state.count = int(state.get("count", 0)) + 1
+
+def reset():
+    state.count = 0
+    state.greeting = "已重置"
+    state.name = ""
+
+def on_name(value):
+    state.name = value.strip()
+
+def toggle_theme(checked):
+    state.theme_light = checked
+    app.set_theme("light" if checked else "dark")
+    state.greeting = "浅色模式已开启" if checked else "深色模式已开启"
+    app.refresh()
+</script>
