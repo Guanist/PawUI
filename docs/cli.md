@@ -5,6 +5,9 @@
 ```bash
 pawui <file.paw>           # Run a .paw file
 pawui run <file.paw>       # Explicit run command
+pawui check <file.paw>     # Syntax check only (no rendering)
+pawui schema               # Print component JSON Schema
+pawui render <file.paw>    # Offscreen render self-check
 pawui --version            # Print version
 pawui --help               # Show help
 ```
@@ -30,11 +33,16 @@ pawui.run("app.paw")
 
 # With context
 pawui.run("app.paw", context={"api_key": "secret"}, theme="light")
+```
 
-# Non-blocking (returns Runtime)
-rt = pawui.run("app.paw", block=False)
-# ... do other things ...
-rt.app.exec()  # Start event loop manually
+For a non-blocking runtime instance, use `Runtime` directly:
+
+```python
+from pawui.runtime import Runtime
+
+rt = Runtime(source, context=context)
+rt.run(block=False)   # returns the root QWidget
+rt.app.exec()         # start the event loop manually
 ```
 
 ## Runtime Methods

@@ -3,4 +3,4 @@
 from .cli import main, run
 
 __all__ = ["run", "main"]
-__version__ = "0.1.0b0"
+__version__ = "0.1.0"

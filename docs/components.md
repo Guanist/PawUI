@@ -141,6 +141,38 @@ Empty space.
 <Spacer width="10"/>  <!-- In Row -->
 ```
 
+## If
+
+Conditional rendering (logical container, no visual border).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `condition` | bool \| string | - | `{$flag}` / `$flag` / `true` / `false` / `yes` / `on` / `1` |
+
+```html
+<If condition="{$logged_in}">
+  <Text>Welcome back!</Text>
+</If>
+```
+
+## For
+
+List loop (logical container, no visual border).
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `each` | string | "item" | Loop variable name |
+| `in` | any | - | List reference, use `{$items}` to keep the raw object |
+
+```html
+<For each="item" in="{$items}">
+  <Text>{$item.name} — {$item.price}$</Text>
+</For>
+```
+
+Supports nested `<For>`, `<If>` inside loops, and attribute/index access
+(`{$item.name}`, `{$row[0]}`) on the loop value.
+
 ## Animation Props (All Elements)
 
 | Prop | Type | Default | Description |

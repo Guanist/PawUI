@@ -11,7 +11,7 @@ Declarative UI: HTML-like `.paw` → PySide6/Qt. Product goal: **AI-authored UIs
 ## API invariants
 - Font size prop: `size` (`font_size` compat only).
 - Events: `on_click` / `on_change` / `on_enter` = **function-name strings** from `<script>` or `run(context=...)`.
-- Values: `{$x}` / `{x}` / `$x` only — single identifier, no expressions.
+- Values: `{$x}` / `{x}` / `$x` with attribute/index paths (`{$item.name}`, `{$items[0]}`); no arbitrary expressions.
 - Animation: `animate` + `duration`/`delay`/`easing`; containers `stagger`.
 - `<Component name>` → `{$prop}` inside; `<Card label="x" value="{$count}"/>`.
 - `<Theme extends="dark|light"><Color name value>`; overridable: `background surface text subtext accent border danger`; other names → `theme.custom`, usable as `color="brand"`.
@@ -32,4 +32,4 @@ Declarative UI: HTML-like `.paw` → PySide6/Qt. Product goal: **AI-authored UIs
 `pawui app.paw` · offscreen smoke build · real-platform grab for any visual change · keep `AI_PROMPT.md` in sync.
 
 ## Gaps
-tests/CI/LICENSE/docs · `pawui schema` + `pawui check` + `pawui render -o png` · `<If>/<For>`, two-way binding, default props, slots · Slider/Progress/Tabs/Image/Tooltip, Text wrap/align/pad · hot reload, error messages, mypy/ruff, PyPI.
+tests · `pawui schema` + `pawui check` + `pawui render -o png` · `<If>/<For>` done, two-way binding, default props, slots · Slider/Progress/Tabs/Image/Tooltip, Text wrap/align/pad · hot reload, error messages, mypy/ruff, PyPI.

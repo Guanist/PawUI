@@ -61,4 +61,22 @@ def increment():
 
 ## 内置组件
 
-`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer`。
+`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer` `If`（条件渲染） `For`（列表循环）
+
+```html
+<For each="item" in="{$items}">
+  <If condition="{$item.done}">
+    <Text>{$item.name}</Text>
+  </If>
+</For>
+```
+
+## CLI
+
+```bash
+pawui run app.paw      # 运行（或直接 pawui app.paw）
+pawui check app.paw    # 仅语法检查
+pawui schema           # 输出组件 JSON Schema
+pawui render app.paw   # 离屏渲染自检
+pawui --version
+```

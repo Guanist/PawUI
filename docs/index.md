@@ -21,7 +21,3 @@ Welcome to PawUI - a lightweight, declarative UI layer for Python using Qt/PySid
 pip install pawui
 pawui app.paw
 ```
-
-## License
-
-GPLv3 - see [LICENSE](../LICENSE) for details.
