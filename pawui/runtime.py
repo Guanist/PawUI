@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from typing import Any
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from .animate import entrance, is_animation
@@ -18,6 +18,12 @@ from .state import State
 from .theme import THEMES, Theme
 
 LOGICAL_TAGS = {"If", "For"}
+
+
+class _AsyncBridge(QObject):
+    """把后台线程的结果经 Qt 信号送还主线程（QueuedConnection）。"""
+
+    done = Signal(object, object)
 
 
 class Runtime:
@@ -33,6 +39,7 @@ class Runtime:
         self._context = dict(context or {})
         self._built = False
         self._animations: list[tuple] = []
+        self._bridges: set[_AsyncBridge] = set()
 
     def run(self, block: bool = True) -> QWidget | None:
         self._prepare()
@@ -298,6 +305,33 @@ class Runtime:
         if args and not positional and not has_var:
             return handler()
         return handler(*args)
+
+    def invoke_async(self, handler: Any, *args: Any, done: Any = None) -> None:
+        """在后台线程执行 handler，完成后把结果经 done(result, error) 交回主线程。
+
+        适合耗时任务：handler 只做计算、千万别碰 Qt 控件；UI/state 更新放到 done。
+        """
+        if not callable(handler):
+            return
+        bridge = _AsyncBridge()
+        self._bridges.add(bridge)
+
+        def _worker() -> None:
+            try:
+                result = self.invoke(handler, *args)
+                error = None
+            except Exception as e:  # noqa: BLE001
+                result, error = None, e
+            bridge.done.emit(result, error)
+
+        def _on_done(result: Any, error: Any) -> None:
+            self._bridges.discard(bridge)
+            if callable(done):
+                done(result, error)
+
+        bridge.done.connect(_on_done)
+        from threading import Thread
+        Thread(target=_worker, daemon=True).start()
 
 
 def render(source: str, filename: str = "<memory>", context: dict | None = None, theme: str = "dark", block: bool = False) -> QWidget | None:

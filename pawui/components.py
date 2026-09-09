@@ -17,8 +17,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSlider,
     QTabWidget,
@@ -505,6 +507,83 @@ class Tooltip(Component):
         return wrap
 
 
+class TextArea(Component):
+    def build(self) -> QPlainTextEdit:
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        edit = QPlainTextEdit()
+        edit.setPlaceholderText(self.opt_str("placeholder", ""))
+        initial = resolve_prop_value(self.props.get("value", ""), self.scope, self.runtime)
+        edit.setPlainText(str(initial or ""))
+        edit.setReadOnly(self.opt_bool("readonly", False))
+        h = self.opt_int("height", 0)
+        if h:
+            edit.setFixedHeight(h)
+        size = self.opt_int("size", 0)
+        edit.setStyleSheet(
+            f"QPlainTextEdit {{ background-color:{self.theme.surface}; color:{self.theme.text};"
+            f" border:1px solid {self.theme.border}; border-radius:10px; padding:8px 12px;"
+            f" font-size:{max(size, 14)}px; }} QPlainTextEdit:focus {{ border:2px solid {self.theme.accent}; }}"
+        )
+        if handler:
+            edit.textChanged.connect(lambda: self.runtime.invoke(handler, edit.toPlainText()))
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            edit.textChanged.connect(lambda: self._push_state(bind, edit.toPlainText()))
+        self.widget = edit
+        value = self.props.get("value", None)
+        if isinstance(value, str) and is_template(value):
+            self.bind_state(value, lambda v: edit.setPlainText(str(resolve_prop_value(v, self.scope, self.runtime))))
+        return edit
+
+
+class Scroll(Component):
+    is_container = True
+    axis = "y"
+
+    def build(self) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        bg = self.opt_color("bg", "")
+        if bg:
+            scroll.setStyleSheet(f"QScrollArea {{ background:{bg}; border:none; }}")
+        inner = QWidget()
+        lay = QVBoxLayout(inner) if self.axis == "y" else QHBoxLayout(inner)
+        left, top, right, bottom = self.padding()
+        lay.setContentsMargins(left, top, right, bottom)
+        lay.setSpacing(self.opt_int("spacing", self.theme.spacing))
+        scroll.setWidget(inner)
+        self.widget = scroll
+        self.layout = lay
+        self._inner = inner
+        return scroll
+
+
+class Web(Component):
+    def build(self) -> QWidget:
+        try:
+            from PySide6.QtWebEngineWidgets import QWebEngineView
+        except ImportError:
+            from .errors import RenderError
+            raise RenderError("Web component requires PySide6-Addons (pip install PySide6-Addons)", self.element.pos)
+        view = QWebEngineView()
+        bg = self.opt_color("bg", self.theme.background)
+        view.setStyleSheet(f"QWebEngineView {{ background:{bg}; border:none; }}")
+        src = resolve_prop_value(self.props.get("src", ""), self.scope, self.runtime)
+        html = self.props.get("html", "")
+        if isinstance(html, str) and is_template(html):
+            html = resolve_prop_value(html, self.scope, self.runtime)
+        if src:
+            from PySide6.QtCore import QUrl
+            view.setUrl(QUrl(str(src)))
+        elif html:
+            view.setHtml(str(html))
+        self.widget = view
+        self._view = view
+        return view
+
+
 BUILTINS: dict[str, type[Component]] = {
     "Window": Window,
     "Column": Column,
@@ -520,4 +599,7 @@ BUILTINS: dict[str, type[Component]] = {
     "Tabs": Tabs,
     "Image": Image,
     "Tooltip": Tooltip,
+    "TextArea": TextArea,
+    "Scroll": Scroll,
+    "Web": Web,
 }

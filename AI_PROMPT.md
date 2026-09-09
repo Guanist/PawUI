@@ -27,8 +27,14 @@ Top level: `<Window>` (exactly one), `<Theme>`, `<Component>`, `<script>`, `<!--
 | `Tabs` | child `<Tab label="…">…</Tab>` pages; `bg` |
 | `Image` | `src width height cover` |
 | `Tooltip` | `text` / text between tags; wraps one child with hover tip |
+| `TextArea` | `value placeholder on_change readonly height bind` — multiline text |
+| `Scroll` | like `Column`/`Row` + `axis="y\|x"` — scrollable container |
+| `Web` | `src` (URL) or `html` (inline HTML, `{$state}` supported) — requires PySide6-Addons |
 | `If` | `condition` — `{$flag}` or `true/false/yes/on/1`; renders children when truthy |
 | `For` | `each` (loop var, default `item`) + `in="{$list}"`; supports nested loops, `{$item.name}`, `{$row[0]}` |
+
+Async: `app.invoke_async(handler, done=fn)` runs `handler` in a background thread;
+`done(result, error)` returns on the main thread — update `state` only inside `done`.
 
 Two-way binding: `bind="name"` writes the widget value back to `state`
 (Input text, Checkbox bool, Slider int); pair with `value="{$name}"` for the

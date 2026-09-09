@@ -163,6 +163,32 @@ SCHEMA = {
             "props": {"text": {"type": "string", "description": "Tooltip text"}},
             "description": "Wraps a child; hover shows tooltip",
         },
+        "TextArea": {
+            "props": {
+                "value": {"type": "string", "description": "Initial text or {$state} template"},
+                "placeholder": {"type": "string"},
+                "on_change": {"type": "string", "description": "Handler(text)"},
+                "readonly": {"type": "boolean", "default": False},
+                "height": {"type": "integer", "description": "Fixed height (px)"},
+                "bind": {"type": "string", "description": "Two-way bind to state key"},
+            },
+            "description": "Multiline text editor (self-closing)",
+        },
+        "Scroll": {
+            "props": {
+                "bg": {"type": "string"},
+                "spacing": {"type": "integer"},
+                "padding": {"type": "string", "description": "int or tuple"},
+            },
+            "description": "Scrollable container; children overflow-scroll",
+        },
+        "Web": {
+            "props": {
+                "src": {"type": "string", "description": "URL to load"},
+                "html": {"type": "string", "description": "Inline HTML (if no src)"},
+            },
+            "description": "iframe-like embedded web view (requires PySide6-Addons)",
+        },
         "If": {
             "props": {"condition": {"type": "boolean", "description": "Render when truthy"}},
             "description": "Conditional logical container",

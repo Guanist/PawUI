@@ -259,6 +259,88 @@ Attaches a hover tooltip to wrapped child widget(s).
 </Tooltip>
 ```
 
+## TextArea
+
+Multiline text editor. Scrolls internally; good for log/terminal-style output or
+editing longer text.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | string | - | Initial text, or `{$state}` template to sync from |
+| `placeholder` | string | - | Hint shown when empty |
+| `on_change` | string | - | Handler(text) |
+| `readonly` | boolean | false | Disable editing |
+| `height` | integer | - | Fixed height in px (default grows) |
+| `bind` | string | - | Two-way bind to state key |
+
+```html
+<TextArea placeholder="Type a message..." bind="draft" height="120"/>
+```
+
+## Scroll
+
+Scrollable container for overflowing content (long lists, logs, etc.). Same
+props as `Column`/`Row` plus `axis`; children are placed inside a scroll view.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `axis` | string | `y` | `y` (vertical) or `x` (horizontal) |
+| `bg` | string | - | Background color |
+
+```html
+<Scroll height="200">
+  <For each="line" in="{$log}">
+    <Text>{$line}</Text>
+  </For>
+</Scroll>
+```
+
+## Web
+
+iframe-like embedded web view. Requires `PySide6-Addons` (ships with
+`pip install PySide6`).
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `src` | string | URL to load |
+| `html` | string | Inline HTML (used when no `src`); accepts `{$state}` templates |
+
+```html
+<Web src="https://example.com" height="300"/>
+<Web height="300" html="<iframe width='100%' height='288' src='https://player.vimeo.com/video/1'/></iframe>"/>
+```
+
+## Async Task in Script (invoke_async)
+
+Long-running work should never touch Qt widgets directly or it will freeze the
+UI. Run it in a background thread with `app.invoke_async(handler, done=fn)`.
+`handler` only computes; `done(result, error)` runs back on the main thread and
+is the safe place to update `state`.
+
+```html
+<Window width="480" height="360">
+  <Column>
+    <Text size="16" bold>{$status}</Text>
+    <Button on_click="run_task">Compute</Button>
+  </Column>
+</Window>
+```
+
+```python
+<script>
+def run_task():
+    state.status = "working..."
+    def work():
+        import time
+        time.sleep(1)
+        return 42
+    def done(result, error):
+        state.result = result if error is None else str(error)
+        state.status = "done"
+    app.invoke_async(work, done=done)
+</script>
+```
+
 ## Two-Way Binding
 
 Form components accept a `bind` prop. The value is written back to `state`
@@ -269,6 +351,7 @@ when the user changes the widget; the widget keeps updating from `state` too.
 | `Input` | text (string) |
 | `Checkbox` | checked (bool) |
 | `Slider` | value (int) |
+| `TextArea` | text (string) |
 
 ```html
 <Input bind="name"/>

@@ -32,4 +32,4 @@ Declarative UI: HTML-like `.paw` → PySide6/Qt. Product goal: **AI-authored UIs
 `pawui app.paw` · offscreen smoke build · real-platform grab for any visual change · keep `AI_PROMPT.md` in sync.
 
 ## Gaps
-tests · `pawui schema` + `pawui check` + `pawui render -o png` · `<If>/<For>` done, two-way binding, default props, slots · Slider/Progress/Tabs/Image/Tooltip, Text wrap/align/pad · hot reload, error messages, mypy/ruff, PyPI.
+tests · `pawui schema` + `pawui check` + `pawui render -o png` · `<If>/<For>` done, two-way binding, default props, slots · Slider/Progress/Tabs/Image/Tooltip/TextArea/Scroll/Web, Text wrap/align/pad · hot reload + `invoke_async` (thread-safe), error messages, mypy/ruff, PyPI.
