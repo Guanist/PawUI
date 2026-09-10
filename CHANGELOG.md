@@ -2,7 +2,7 @@
 
 所有 PawUI 的重要变更都会记录在此文件。
 
-## [0.1.1] - 2026-09-10
+## [0.1.1] - 2026-09-09
 
 ### 新增
 - `TextArea` 组件：多行文本输入，支持 `value` / `placeholder` / `on_change` / `readonly` / `height` / `bind`（双向绑定）。
@@ -10,18 +10,18 @@
 - `Web` 组件：iframe 等价物，`src`(URL) 或 `html`（支持 `{$state}` 模板）；需要 PySide6-Addons。
 - `Runtime.invoke_async(handler, done=fn)`：后台线程执行耗时任务，`done(result, error)` 经 Qt 信号回到主线程，避免卡 UI。
 
-## [0.1.0.2] - 2026-09-10
+## [0.1.0.2] - 2026-09-09
 
 ### 新增
 - `Runtime.reload(source)` API + `pawui watch <file.paw>`：文件变化自动重建窗口，保留 state 与 script 函数。
 
-## [0.1.0.1] - 2026-09-10
+## [0.1.0.1] - 2026-09-09
 
 ### 新增
 - 文档打包进 wheel/sdist（`share/pawui/docs`），新增 `pawui help [topic]` 命令。
 - README 补充 PySide6 依赖说明。
 
-## [0.1.0] - 2026-09-10
+## [0.1.0] - 2026-09-09
 
 ### 新增
 - `<If condition>` / `<For each in>` 控制流（可嵌套）。
@@ -33,7 +33,7 @@
 ### 变更
 - **闭源**：移除 LICENSE 与许可证声明，同步精简 CI（移除 PyPI 发布 job）。
 
-## [0.1.0b0] - 2026-09-10
+## [0.1.0b0] - 2026-09-09
 
 ### 新增
 - 首个可发布版本：HTML 风格声明式 UI → PySide6。
