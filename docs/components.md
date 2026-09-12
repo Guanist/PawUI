@@ -399,3 +399,46 @@ falls back to `default`:
 ```html
 <Text animate="slide-up" duration="400" delay="100" easing="out-back">Animated</Text>
 ```
+## Select
+
+Native dropdown selector.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | list | `[]` | String options or `{$state}` list reference |
+| `value` | string | `""` | Selected option |
+| `on_change` | string | - | Handler receiving the selected string |
+| `bind` | string | - | Two-way state binding |
+
+```html
+<Select items="{$options}" value="{$selected}" bind="selected" on_change="on_select"/>
+```
+
+
+## Dialog
+
+Inline dialog panel. Use `open` to bind visibility and `on_accept` / `on_reject` for actions.
+
+```html
+<Dialog title="Confirm" open="{$show}" on_accept="confirm" on_reject="cancel">
+  <Text>Continue?</Text>
+</Dialog>
+```
+
+## Menu
+
+Native popup menu. `items` accepts a string list or a `{$state}` list reference.
+
+```html
+<Menu label="Actions" items="{$actions}" bind="selected" on_select="select_action"/>
+```
+
+## Form validation
+
+Wrap fields in `<Form>`. Call `app.validate()` in a handler; failures are available in `app.validation_errors`.
+
+```html
+<Form>
+  <Input required="true" min_length="3"/>
+</Form>
+```

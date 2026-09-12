@@ -104,3 +104,20 @@ class TestTooltip:
         assert labels
         assert labels[0].toolTip() == "Hi there"
         rt.root.close()
+
+
+    def test_select_bind_and_items_update(self, qapp):
+        from PySide6.QtWidgets import QComboBox
+        rt = Runtime('<Window><Select items="{$options}" bind="choice"/></Window>')
+        rt.state.set("options", ["a", "b"])
+        rt.state.set("choice", "a")
+        rt._prepare()
+        rt._build_tree()
+        combo = rt.root.findChild(QComboBox)
+        assert combo.count() == 2
+        combo.setCurrentText("b")
+        assert rt.state.get("choice") == "b"
+        rt.state.set("options", ["b", "c"])
+        assert combo.count() == 2
+        assert combo.itemText(0) == "b"
+        rt.root.close()

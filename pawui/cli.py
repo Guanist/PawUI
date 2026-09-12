@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .components import BUILTINS
 from .errors import PyxError
 from .parser import parse
 from .runtime import Runtime
@@ -98,6 +99,10 @@ SCHEMA = {
                 "on_enter": {"type": "string", "description": "Handler(text)"},
                 "size": {"type": "integer", "default": 14},
                 "show": {"type": "string", "enum": ["", "password"], "default": ""},
+                "bind": {"type": "string", "description": "Two-way bind to state key"},
+                "required": {"type": "boolean", "default": False},
+                "min_length": {"type": "integer", "default": 0},
+                "error": {"type": "string"},
             },
             "description": "Text input (self-closing)",
         },
@@ -106,6 +111,7 @@ SCHEMA = {
                 "checked": {"type": "boolean", "default": False},
                 "on_change": {"type": "string", "description": "Handler(checked)"},
                 "size": {"type": "integer", "default": 12},
+                "bind": {"type": "string", "description": "Two-way bind to state key"},
             },
             "description": "Toggle switch (label between tags)",
         },
@@ -132,6 +138,7 @@ SCHEMA = {
                 "on_change": {"type": "string", "description": "Handler(value)"},
                 "accent": {"type": "string", "default": "accent"},
                 "bg": {"type": "string", "default": "border"},
+                "bind": {"type": "string", "description": "Two-way bind to state key"},
             },
             "description": "Horizontal value slider (self-closing)",
         },
@@ -145,6 +152,27 @@ SCHEMA = {
                 "bg": {"type": "string", "default": "surface"},
             },
             "description": "Progress bar (self-closing)",
+        },
+        "Dialog": {
+            "props": {"title": {"type": "string"}, "open": {"type": "boolean", "default": True}, "on_accept": {"type": "string"}, "on_reject": {"type": "string"}},
+            "description": "Inline dialog panel",
+        },
+        "Menu": {
+            "props": {"label": {"type": "string", "default": "Menu"}, "items": {"type": "array"}, "on_select": {"type": "string"}, "bind": {"type": "string"}},
+            "description": "Native popup menu",
+        },
+        "Form": {
+            "props": {"padding": {"type": ["integer", "array"]}, "spacing": {"type": "integer"}},
+            "description": "Container for fields validated by app.validate()",
+        },
+        "Select": {
+            "props": {
+                "items": {"type": "array", "description": "String list or {$state} reference"},
+                "value": {"type": "string", "default": ""},
+                "on_change": {"type": "string", "description": "Handler(value)"},
+                "bind": {"type": "string", "description": "Two-way bind to state key"},
+            },
+            "description": "Native dropdown selector",
         },
         "Tabs": {
             "props": {"bg": {"type": "string", "default": "background"}},
@@ -179,6 +207,7 @@ SCHEMA = {
                 "bg": {"type": "string"},
                 "spacing": {"type": "integer"},
                 "padding": {"type": "string", "description": "int or tuple"},
+                "axis": {"type": "string", "enum": ["y", "x"], "default": "y"},
             },
             "description": "Scrollable container; children overflow-scroll",
         },
@@ -284,6 +313,39 @@ def run(path: str | Path, context: dict[str, Any] | None = None, theme: str = "d
     rt.run(block=True)
 
 
+def _validate_program(program: Any) -> list[str]:
+    errors: list[str] = []
+    definitions = {el.name for el in program.elements if el.tag == "component" and el.name}
+    seen: set[str] = set()
+    for el in program.elements:
+        if el.tag == "component" and el.name:
+            if el.name in seen:
+                errors.append(f"duplicate component: {el.name}")
+            seen.add(el.name)
+    top = [el for el in program.elements if el.tag not in ("component", "Theme")]
+    windows = [el for el in top if el.tag == "Window"]
+    if len(windows) > 1:
+        errors.append("only one root <Window> is allowed")
+    if windows and len(top) > 1:
+        errors.append("top-level elements must live inside <Window>")
+
+    def visit(el: Any) -> None:
+        if el.tag not in BUILTINS and el.tag not in ("If", "For", "Tab") and el.tag not in definitions:
+            errors.append(f"unknown component <{el.tag}>")
+        if el.tag == "If" and ("condition" not in el.props or not el.children):
+            errors.append("<If> requires condition and at least one child")
+        if el.tag == "For" and ("in" not in el.props or not el.children):
+            errors.append("<For> requires in and at least one child")
+        if el.tag == "Scroll" and str(el.props.get("axis", "y")) not in ("x", "y"):
+            errors.append('<Scroll axis> must be "x" or "y"')
+        for child in el.children:
+            visit(child)
+
+    for el in top:
+        visit(el)
+    return errors
+
+
 def check(path: str | Path) -> int:
     """语法检查 .paw 文件，不运行。"""
     p = Path(path)
@@ -293,6 +355,11 @@ def check(path: str | Path) -> int:
     source = p.read_text(encoding="utf-8")
     try:
         program = parse(source, str(p))
+        errors = _validate_program(program)
+        if errors:
+            for error in errors:
+                print(f"{p}: error: {error}", file=sys.stderr)
+            return 1
         print(f"✓ {p}: syntax OK")
         print(f"  Elements: {len(program.elements)}")
         print(f"  Script: {'yes' if program.script else 'no'}")

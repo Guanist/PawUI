@@ -43,6 +43,7 @@ Rules:
 ```html
 <If condition="{$logged_in}">...</If>
 <For each="item" in="{$items}">...</For>
+<Select items="{$options}" bind="selected"/>
 ```
 
 See [State & Scripts](state-scripts.md#control-flow).

@@ -147,3 +147,13 @@ def slow():
         assert completed[0][0] is None
         assert isinstance(completed[0][1], ValueError)
         rt.root.close()
+
+
+    def test_scroll_horizontal_axis(self, qapp):
+        from PySide6.QtWidgets import QHBoxLayout
+        rt = Runtime('<Window><Scroll axis="x"><Text>one</Text></Scroll></Window>')
+        rt._prepare()
+        rt._build_tree()
+        scroll = rt.root.findChild(QScrollArea)
+        assert isinstance(scroll.widget().layout(), QHBoxLayout)
+        rt.root.close()

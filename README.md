@@ -68,7 +68,7 @@ def increment():
 
 ## 内置组件
 
-`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer` `Slider` `Progress` `Tabs` `Image` `Tooltip` `TextArea`（多行输入） `Scroll`（可滚动容器） `Web`（内嵌网页，需要 PySide6-Addons） `If`（条件渲染） `For`（列表循环）
+`Window` `Column` `Row` `Text` `Button` `Input` `Checkbox`（开关） `Divider` `Spacer` `Slider` `Progress` `Tabs` `Image` `Tooltip` `TextArea`（多行输入） `Scroll`（可滚动容器） `Select`（下拉选择） `Web`（内嵌网页，需要 PySide6-Addons） `If`（条件渲染） `For`（列表循环）
 
 ```html
 <For each="item" in="{$items}">

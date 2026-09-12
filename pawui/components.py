@@ -13,10 +13,12 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractButton,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
@@ -24,6 +26,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSlider,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -35,6 +38,7 @@ from .resolve import (
     is_template,
     resolve_handler,
     resolve_prop_value,
+    resolve_raw,
     resolve_template,
 )
 from .theme import Theme, _blend
@@ -52,9 +56,30 @@ class Component:
         self.theme: Theme = runtime.theme
         self.widget: QWidget | None = None
         self.layout: Any = None
+        self._children: list[Component] = []
+        self._unwatch: list[Any] = []
+
+    def watch_state(self, key: str, fn: Any) -> None:
+        unsubscribe = self.runtime.state.watch(key, fn)
+        self._unwatch.append(unsubscribe)
+        self.runtime._subscriptions.append(unsubscribe)
+
+    def dispose_children(self) -> None:
+        for child in self._children:
+            child.dispose()
+        self._children.clear()
+
+    def dispose(self) -> None:
+        self.dispose_children()
+        for unsubscribe in self._unwatch:
+            unsubscribe()
+        self._unwatch.clear()
 
     def build(self) -> QWidget:
         raise NotImplementedError
+
+    def validate(self) -> str | None:
+        return None
 
     def stretch(self) -> int:
         return 1 if self.opt_bool("expand", False) else 0
@@ -126,7 +151,7 @@ class Component:
     def bind_state(self, template: str, set_fn: Any) -> None:
         names = collect_refs(template, self.scope, self.runtime)
         for name in names:
-            self.runtime.state.watch(name, lambda _: set_fn(resolve_template(template, self.scope, self.runtime)))
+            self.watch_state(name, lambda _: set_fn(resolve_template(template, self.scope, self.runtime)))
 
     def _bind_key(self) -> str:
         bind = self.props.get("bind", "")
@@ -268,6 +293,9 @@ class Input(Component):
             self._suppress = False
             edit.textChanged.connect(lambda text: self._push_state(bind, text))
         self.widget = edit
+        register = getattr(self.runtime, "register_validator", None)
+        if register:
+            register(lambda: self._validate_text(edit.text()))
         value = self.props.get("value", "")
         if isinstance(value, str) and is_template(value):
 
@@ -278,6 +306,14 @@ class Input(Component):
 
             self.bind_state(value, _set)
         return edit
+
+    def _validate_text(self, text: str) -> str | None:
+        if self.opt_bool("required") and not text.strip():
+            return self.opt_str("error", "This field is required")
+        minimum = self.opt_int("min_length", 0)
+        if minimum and len(text) < minimum:
+            return self.opt_str("error", f"Minimum length is {minimum}")
+        return None
 
     def _initial(self) -> str:
         return str(resolve_prop_value(self.props.get("value", ""), self.scope, self.runtime))
@@ -334,6 +370,13 @@ class Checkbox(Component):
         if bind:
             self._suppress = False
             toggle.toggled.connect(lambda checked: self._push_state(bind, checked))
+        checked = self.props.get("checked", None)
+        if isinstance(checked, str) and is_template(checked):
+            def _set(v: Any) -> None:
+                self._suppress = True
+                toggle.setChecked(bool(resolve_prop_value(v, self.scope, self.runtime)))
+                self._suppress = False
+            self.bind_state(checked, _set)
         return wrap
 
 
@@ -418,6 +461,115 @@ class Progress(Component):
         if isinstance(value, str) and is_template(value):
             self.bind_state(value, lambda v: bar.setValue(int(resolve_prop_value(v, self.scope, self.runtime))))
         return bar
+
+
+class Select(Component):
+    def build(self) -> QComboBox:
+        combo = QComboBox()
+        items = resolve_raw(self.props.get("items", []), self.scope, self.runtime)
+        self._set_items(combo, items)
+        value = self.props.get("value", "")
+        combo.setCurrentText(str(resolve_prop_value(value, self.scope, self.runtime)))
+        if isinstance(value, str) and is_template(value):
+            self.bind_state(value, lambda v: combo.setCurrentText(str(resolve_prop_value(v, self.scope, self.runtime))))
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        if handler:
+            combo.currentTextChanged.connect(lambda text: self.runtime.invoke(handler, text))
+        bind = self._bind_key()
+        if bind:
+            combo.currentTextChanged.connect(lambda text: self._push_state(bind, text))
+        items_prop = self.props.get("items", None)
+        if isinstance(items_prop, str) and is_template(items_prop):
+            for name in collect_refs(items_prop, self.scope, self.runtime):
+                self.watch_state(name, lambda _: self._set_items(combo, resolve_raw(items_prop, self.scope, self.runtime)))
+        self.widget = combo
+        return combo
+
+    @staticmethod
+    def _set_items(combo: QComboBox, items: Any) -> None:
+        current = combo.currentText()
+        values = [str(v) for v in items] if isinstance(items, (list, tuple)) else []
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(values)
+        if current in values:
+            combo.setCurrentText(current)
+        combo.blockSignals(False)
+
+
+class Dialog(Container):
+    def build(self) -> QWidget:
+        panel = QWidget()
+        lay = QVBoxLayout(panel)
+        left, top, right, bottom = self.padding()
+        lay.setContentsMargins(left, top, right, bottom)
+        lay.setSpacing(self.opt_int("spacing", self.theme.spacing))
+        title = self.opt_str("title", "")
+        if title:
+            label = QLabel(title)
+            label.setStyleSheet(f"color:{self.theme.text}; font-size:18px; font-weight:600;")
+            lay.addWidget(label)
+        buttons = QHBoxLayout()
+        cancel = self.opt_str("cancel", "Cancel")
+        accept = self.opt_str("accept", "OK")
+        if cancel:
+            button = QPushButton(cancel)
+            handler = resolve_handler(self.props.get("on_reject"), self.scope, self.runtime)
+            if handler:
+                button.clicked.connect(lambda: self.runtime.invoke(handler))
+            buttons.addWidget(button)
+        if accept:
+            button = QPushButton(accept)
+            handler = resolve_handler(self.props.get("on_accept"), self.scope, self.runtime)
+            if handler:
+                button.clicked.connect(lambda: self.runtime.invoke(handler))
+            buttons.addWidget(button)
+        lay.addLayout(buttons)
+        panel.setStyleSheet(f"QWidget {{ background:{self.opt_color('bg', self.theme.surface)}; border-radius:12px; }}")
+        panel.setVisible(self.opt_bool("open", True))
+        self.widget = panel
+        self.layout = lay
+        open_prop = self.props.get("open")
+        if isinstance(open_prop, str) and is_template(open_prop):
+            self.bind_state(open_prop, lambda v: panel.setVisible(str(v).lower() in ("1", "true", "yes", "on")))
+        return panel
+
+
+class Menu(Component):
+    def build(self) -> QToolButton:
+        button = QToolButton()
+        button.setText(self.opt_str("label", "Menu"))
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu = QMenu(button)
+        self._set_items(menu, resolve_raw(self.props.get("items", []), self.scope, self.runtime))
+        handler = resolve_handler(self.props.get("on_select"), self.scope, self.runtime)
+        bind = self._bind_key()
+        if handler or bind:
+            menu.triggered.connect(lambda action: self._select(action.text(), handler, bind))
+        items = self.props.get("items")
+        if isinstance(items, str) and is_template(items):
+            for name in collect_refs(items, self.scope, self.runtime):
+                self.watch_state(name, lambda _: self._set_items(menu, resolve_raw(items, self.scope, self.runtime)))
+        button.setMenu(menu)
+        self.widget = button
+        return button
+
+    def _select(self, text: str, handler: Any, bind: str) -> None:
+        if handler:
+            self.runtime.invoke(handler, text)
+        if bind:
+            self._push_state(bind, text)
+
+    @staticmethod
+    def _set_items(menu: QMenu, items: Any) -> None:
+        menu.clear()
+        if isinstance(items, (list, tuple)):
+            for item in items:
+                menu.addAction(str(item))
+
+
+class Form(Container):
+    pass
 
 
 class Tabs(Component):
@@ -549,7 +701,7 @@ class Scroll(Component):
         if bg:
             scroll.setStyleSheet(f"QScrollArea {{ background:{bg}; border:none; }}")
         inner = QWidget()
-        lay = QVBoxLayout(inner) if self.axis == "y" else QHBoxLayout(inner)
+        lay = QHBoxLayout(inner) if self.opt_str("axis", "y") == "x" else QVBoxLayout(inner)
         left, top, right, bottom = self.padding()
         lay.setContentsMargins(left, top, right, bottom)
         lay.setSpacing(self.opt_int("spacing", self.theme.spacing))
@@ -596,6 +748,10 @@ BUILTINS: dict[str, type[Component]] = {
     "Spacer": Spacer,
     "Slider": Slider,
     "Progress": Progress,
+    "Select": Select,
+    "Dialog": Dialog,
+    "Menu": Menu,
+    "Form": Form,
     "Tabs": Tabs,
     "Image": Image,
     "Tooltip": Tooltip,

@@ -13,7 +13,7 @@ from .components import BUILTINS, Component
 from .errors import ComponentError, RenderError, ScriptError
 from .nodes import ComponentDef, Element, Program
 from .parser import parse
-from .resolve import is_template, resolve_handler, resolve_prop_value, resolve_raw
+from .resolve import is_template, resolve_handler, resolve_prop_value, resolve_raw, runtime_refs
 from .state import State
 from .theme import THEMES, Theme
 
@@ -40,6 +40,9 @@ class Runtime:
         self._built = False
         self._animations: list[tuple] = []
         self._bridges: set[_AsyncBridge] = set()
+        self._subscriptions: list[Any] = []
+        self._logical_pending: set[int] = set()
+        self._validators: list[Any] = []
 
     def run(self, block: bool = True) -> QWidget | None:
         self._prepare()
@@ -109,6 +112,8 @@ class Runtime:
             self.namespace[k] = v
 
     def _build_tree(self) -> None:
+        self._clear_subscriptions()
+        self._validators.clear()
         self._animations = []
         top_level = [e for e in self.program.elements if e.tag not in ("component", "Theme")]
         if not top_level:
@@ -146,6 +151,8 @@ class Runtime:
         if cls is None:
             raise RenderError(f"unknown component <{tag}>", element.pos)
         comp = cls(self, parent, element, scope)
+        if parent is not None:
+            parent._children.append(comp)
         comp.build()
         self._animate(comp.widget, element.props, scope, delay_bonus)
         if cls.is_container:
@@ -158,51 +165,66 @@ class Runtime:
 
     def _build_logical(self, element: Element, parent: Component | None, scope: dict,
                        delay_bonus: int = 0) -> Component:
-        """<If> / <For>：透明逻辑容器，不产生可见边框。"""
-        tag = element.tag
-        if tag not in LOGICAL_TAGS:
-            raise RenderError(f"unknown logical tag <{tag}>", element.pos)
         comp = Component(self, parent, element, scope)
         box = QWidget()
         lay = QVBoxLayout(box)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(self.theme.spacing if hasattr(self.theme, "spacing") else 0)
-        box.setObjectName("__pawui_logical__")
+        lay.setSpacing(self.theme.spacing)
         comp.widget = box
-        comp.layout = lay  # type: ignore[attr-defined]
+        comp.layout = lay
 
-        pairs: list[tuple[Element, dict]]
-        if tag == "For":
-            each = str(resolve_prop_value(element.props.get("each", "item"), scope, self))
-            items = resolve_raw(element.props.get("in", []), scope, self)
-            if isinstance(items, str):
-                items = [items]
-            elif items is None:
-                items = []
-            elif not isinstance(items, (list, tuple)):
-                try:
-                    items = list(items)
-                except TypeError:
+        def populate() -> None:
+            comp.dispose_children()
+            while lay.count():
+                item = lay.takeAt(0)
+                if item is not None and item.widget() is not None:
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.deleteLater()
+            pairs: list[tuple[Element, dict]] = []
+            if element.tag == "For":
+                each = str(resolve_prop_value(element.props.get("each", "item"), scope, self))
+                items = resolve_raw(element.props.get("in", []), scope, self)
+                if isinstance(items, str):
                     items = [items]
-            pairs = []
-            for item in items:
-                item_scope = dict(scope)
-                item_scope[each] = item
-                for child in element.children:
-                    pairs.append((child, item_scope))
-        else:
-            condition = resolve_raw(element.props.get("condition"), scope, self)
-            if isinstance(condition, str):
-                show = condition.strip().lower() in ("1", "true", "yes", "on")
+                elif items is None:
+                    items = []
+                elif not isinstance(items, (list, tuple)):
+                    try:
+                        items = list(items)
+                    except TypeError:
+                        items = [items]
+                for item in items:
+                    item_scope = dict(scope)
+                    item_scope[each] = item
+                    pairs.extend((child, item_scope) for child in element.children)
             else:
-                show = bool(condition)
-            pairs = [(c, scope) for c in element.children] if show else []
+                condition = resolve_raw(element.props.get("condition"), scope, self)
+                show = condition.strip().lower() in ("1", "true", "yes", "on") if isinstance(condition, str) else bool(condition)
+                if show:
+                    pairs = [(child, scope) for child in element.children]
+            stagger = int(resolve_prop_value(element.props.get("stagger", 0), scope, self) or 0)
+            for i, (child, child_scope) in enumerate(pairs):
+                child_comp = self._build_element(child, comp, child_scope, delay_bonus + i * stagger)
+                if child_comp.widget is not None:
+                    lay.addWidget(child_comp.widget, child_comp.stretch())
+            lay.addStretch(1)
 
-        stagger = comp.opt_int("stagger", 0)
-        for i, (child_el, child_scope) in enumerate(pairs):
-            child_comp = self._build_element(child_el, comp, child_scope, delay_bonus + i * stagger)
-            lay.addWidget(child_comp.widget, child_comp.stretch())  # type: ignore[arg-type]
-        lay.addStretch(1)  # type: ignore[attr-defined]
+        def refresh() -> None:
+            key = id(box)
+            if key in self._logical_pending:
+                return
+            self._logical_pending.add(key)
+            def finish() -> None:
+                populate()
+                self._logical_pending.discard(key)
+            QTimer.singleShot(0, finish)
+
+        populate()
+        ref_value = element.props.get("condition" if element.tag == "If" else "in", "")
+        if isinstance(ref_value, str):
+            for name in runtime_refs(ref_value):
+                comp.watch_state(name, lambda _: refresh())
         self._animate(box, element.props, scope, delay_bonus)
         return comp
 
@@ -246,6 +268,21 @@ class Runtime:
             raise RenderError(f"component <{element.tag}> has no body", cdef.pos)
         return result
 
+    def watch_state(self, key: str, fn: Any) -> None:
+        self._subscriptions.append(self.state.watch(key, fn))
+
+    def _clear_subscriptions(self) -> None:
+        for unsubscribe in self._subscriptions:
+            unsubscribe()
+        self._subscriptions.clear()
+
+    def register_validator(self, validator: Any) -> None:
+        self._validators.append(validator)
+
+    def validate(self) -> bool:
+        self.validation_errors = [error for validator in self._validators if (error := validator())]
+        return not self.validation_errors
+
     def set_theme(self, name_or_theme: str | Theme) -> None:
         if isinstance(name_or_theme, Theme):
             self.theme = name_or_theme
@@ -274,23 +311,27 @@ class Runtime:
         self.components.clear()
         self._built = False
         self._prepare()
-        if self.root is not None:
-            old = self.root
-            self.root = None
-            old.close()
-            old.deleteLater()
-        self._build_tree()
-
-    def _rebuild(self) -> None:
-        if self.root is not None:
-            old = self.root
-            self.root = None
-            old.close()
-            old.deleteLater()
+        old = self.root
         try:
             self._build_tree()
         except Exception:
-            pass
+            self.root = old
+            raise
+        if old is not None and old is not self.root:
+            old.close()
+            old.deleteLater()
+
+    def _rebuild(self) -> None:
+        old = self.root
+        try:
+            self._build_tree()
+        except Exception as e:
+            self.root = old
+            print(f"PawUI rebuild error: {e}", file=__import__("sys").stderr)
+            return
+        if old is not None and old is not self.root:
+            old.close()
+            old.deleteLater()
 
     def invoke(self, handler: Any, *args: Any) -> Any:
         if not callable(handler):

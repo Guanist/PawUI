@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.2.1] - 2026-09-12
+
+### 新增
+- `Dialog`、`Menu`、`Form` 组件。
+- `app.validate()` 和 Input 的 `required` / `min_length` / `error` 校验属性。
+
+
+## [0.1.2] - 2026-09-12
+
+### 修复
+- `<If>` / `<For>` 监听状态变化并局部刷新。
+- 修复 `Scroll axis="x"` 始终使用纵向布局。
+- 补齐 Checkbox 双向绑定的 state → 控件同步。
+- 重建失败时保留旧窗口并输出错误。
+
+### 新增
+- 原生 `Select` 下拉选择组件，支持 `items`、`value`、`on_change`、`bind`。
+
+
 所有 PawUI 的重要变更都会记录在此文件。
 
 ## [0.1.1] - 2026-09-09

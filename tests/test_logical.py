@@ -188,3 +188,16 @@ state.nums = [{"keep": True, "label": "y"}, {"keep": False, "label": "n"}]
         rt._prepare()
         with pytest.raises(Exception, match="unknown component"):
             rt._build_tree()
+
+
+    def test_if_reacts_to_state(self, qapp):
+        source = '<Window><If condition="{$show}"><Text>visible</Text></If></Window>'
+        rt = Runtime(source)
+        rt.state.set("show", False)
+        rt._prepare()
+        rt._build_tree()
+        assert "visible" not in [w.text() for w in rt.root.findChildren(QLabel)]
+        rt.state.set("show", True)
+        qapp.processEvents()
+        assert "visible" in [w.text() for w in rt.root.findChildren(QLabel)]
+        rt.root.close()
