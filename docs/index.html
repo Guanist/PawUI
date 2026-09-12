@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PawUI 文档站</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#all">
+    <span>PawUI</span>
+  </a>
+  <nav class="links">
+    <a href="#all">全部</a>
+    <a href="#zh" class="lang-btn active" data-lang="zh">中</a>
+    <a href="#en" class="lang-btn" data-lang="en">EN</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav id="sidebar-nav">
+      <!-- 侧边栏将由 JavaScript 填充 -->
+    </aside>
+  </aside>
+  <main class="content">
+    <article id="content" class="markdown-body">
+      <!-- 所有文档将由 JavaScript 渲染 -->
+    </article>
+  </main>
+</div>
+
+<script src="static/marked.min.js"></script>
+<script src="static/dompurify.min.js"></script>
+<script src="static/app.js"></script>
+</body>
+</html>
