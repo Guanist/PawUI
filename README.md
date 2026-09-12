@@ -1,5 +1,7 @@
 # PawUI
 
+官网 / 文档站：[pawui.pages.dev](https://pawui.pages.dev/)
+
 轻量、直接运行的 Python 声明式 UI 层。HTML 风格，Qt/PySide6 渲染（原生抗锯齿、QSS 圆角/悬停/聚焦、IME 组字正常），无构建。
 
 ## 安装
