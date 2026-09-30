@@ -1,23 +1,33 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pawui"
-version = "0.1.2.2"
+version = "0.1.3"
 description = "轻量、直接运行的 Python 声明式 UI 层"
 readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = ["PySide6>=6.5"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: User Interfaces",
 ]
+
+[project.urls]
+Homepage = "https://pawui.pages.dev"
+Documentation = "https://pawui.pages.dev/docs/"
+Repository = "https://github.com/LK-BLOG/PawUI"
+Changelog = "https://github.com/LK-BLOG/PawUI/blob/main/CHANGELOG.md"
+Issues = "https://github.com/LK-BLOG/PawUI/issues"
 
 [project.scripts]
 pawui = "pawui.cli:main"
@@ -31,9 +41,13 @@ dev = [
     "build>=1.0",
     "twine>=4.0",
 ]
+web = ["PySide6-Addons"]
 
 [tool.setuptools.packages.find]
 include = ["pawui*"]
+
+[tool.setuptools.package-data]
+pawui = ["py.typed"]
 
 [tool.setuptools.data-files]
 "share/pawui/docs" = ["docs/*.md"]
