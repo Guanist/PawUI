@@ -55,6 +55,28 @@ state.body = "initial"
         assert rt.state.get("body") == "changed"
         rt.root.close()
 
+    def test_bind_does_not_echo_loop(self, qapp):
+        """bind + value 不能形成回声：state → 控件 → state → 控件 ……
+
+        部分 Qt 版本的 `setPlainText` 即使内容没变也会发 textChanged，
+        没有回声守卫就会一直互相触发，最后撞穿递归深度。
+        """
+        source = '''<Window><TextArea bind="body" value="{$body}"/></Window>
+        <script>
+state.body = "a"
+        </script>'''
+        rt = Runtime(source)
+        rt._prepare()
+        rt._build_tree()
+        pushed = []
+        rt.state.watch("body", pushed.append)
+        edit = _find_plain(rt.root)
+        edit.setPlainText("b")
+        edit.setPlainText("c")
+        assert pushed == ["b", "c"], pushed
+        assert edit.toPlainText() == "c"
+        rt.root.close()
+
     def test_value_template_updates(self, qapp):
         source = '''<Window><TextArea value="{$body}"/></Window>
         <script>

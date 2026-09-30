@@ -982,7 +982,7 @@ class Select(Component):
         value = self.props.get("value", "")
         combo.setCurrentText(str(resolve_prop_value(value, self.scope, self.runtime)))
         if isinstance(value, str) and is_template(value):
-            self.bind_state(value, lambda v: combo.setCurrentText(str(resolve_prop_value(v, self.scope, self.runtime))))
+            self.bind_state(value, self._set_current)
         handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
         if handler:
             combo.currentTextChanged.connect(lambda text: self.runtime.invoke(handler, text))
@@ -995,6 +995,15 @@ class Select(Component):
                 self.watch_state(name, lambda _: self._set_items(combo, resolve_raw(items_prop, self.scope, self.runtime)))
         self.widget = combo
         return combo
+
+    def _set_current(self, value: Any) -> None:
+        """state → 下拉框，同样压住回声（``currentTextChanged`` 会推回 state）。"""
+        assert isinstance(self.widget, QComboBox)
+        self._suppress = True
+        try:
+            self.widget.setCurrentText(str(resolve_prop_value(value, self.scope, self.runtime)))
+        finally:
+            self._suppress = False
 
     def _style_popup(self, combo: QComboBox) -> None:
         """给下拉弹出层的外框上色。
@@ -1273,8 +1282,23 @@ class TextArea(Component):
             register(self)
         value = self.props.get("value", None)
         if isinstance(value, str) and is_template(value):
-            self.bind_state(value, lambda v: edit.setPlainText(str(resolve_prop_value(v, self.scope, self.runtime))))
+            self.bind_state(value, self._set_text)
         return edit
+
+    def _set_text(self, value: Any) -> None:
+        """state → 控件。**必须压住回声**。
+
+        ``QPlainTextEdit.setPlainText`` 在部分 Qt 版本下即使内容没变也会发
+        ``textChanged``（它总是先清空再插入）。于是 state → setPlainText →
+        textChanged → 推回 state → 监听器又 setPlainText …… 直接撞穿递归深度，
+        而且异常扔在 Qt 事件循环里，用户侧只看到界面突然卡死。
+        """
+        assert isinstance(self.widget, QPlainTextEdit)
+        self._suppress = True
+        try:
+            self.widget.setPlainText(str(resolve_prop_value(value, self.scope, self.runtime)))
+        finally:
+            self._suppress = False
 
     def error_text(self) -> str | None:
         assert isinstance(self.widget, QPlainTextEdit)

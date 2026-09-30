@@ -30,7 +30,8 @@ def isolated_cache(tmp_path, monkeypatch):
     """缓存写进临时目录，别动用户真实的 %LOCALAPPDATA%\\pawui\\docs.json。"""
     monkeypatch.setattr(docsfeed, "cache_file", lambda: tmp_path / "docs.json")
     monkeypatch.delenv("PAWUI_DOCS_OFFLINE", raising=False)
-    monkeypatch.delenv("PAWUI_DOCS_LANG", raising=False)
+    # 语言必须钉死：CI 机器是英文 locale，跟着系统语言走会让断言随环境变
+    monkeypatch.setenv("PAWUI_DOCS_LANG", "zh")
 
 
 class TestParse:
