@@ -1,7 +1,8 @@
 """Tests for two-way binding (bind=) and default props (<Prop>)."""
 
-from PySide6.QtWidgets import QLineEdit, QSlider
+from PySide6.QtWidgets import QLineEdit, QProgressBar, QSlider
 
+from pawui.components import ToggleSwitch
 from pawui.runtime import Runtime
 
 
@@ -65,6 +66,51 @@ state.flag = False
         toggle = rt.root.findChildren(__import__("pawui.components", fromlist=["ToggleSwitch"]).ToggleSwitch)[0]
         toggle.setChecked(True)
         assert rt.state.get("flag") is True
+        rt.root.close()
+
+
+class TestTemplateBindingValueType:
+    """``value="{$x}"`` 这类模板绑定必须把**原始值**交给控件，不能给字符串。
+
+    旧实现走 ``resolve_template()``，拿到的是字符串；``Checkbox`` 里写
+    ``setChecked(bool(v))``，于是 ``bool("False") == True`` —— 用户点掉开关后
+    绑定立刻把它按回打开，开关、state、界面三者互相矛盾，而且再也切不回去。
+    """
+
+    def test_checkbox_syncs_both_ways(self, qapp):
+        source = '''<Window>
+            <Checkbox checked="{$flag}" on_change="on_change">light</Checkbox>
+        </Window>
+        <script>
+def on_change(checked):
+    state.flag = checked
+        </script>'''
+        rt = Runtime(source)
+        rt.state.set("flag", True)
+        rt._prepare()
+        rt._build_tree()
+        toggle = rt.root.findChild(ToggleSwitch)
+        assert toggle.isChecked() is True
+
+        rt.state.set("flag", False)
+        assert toggle.isChecked() is False, "state 变 False 后开关必须跟着关掉"
+
+        rt.state.set("flag", True)
+        assert toggle.isChecked() is True
+        rt.root.close()
+
+    def test_numeric_template_binding_keeps_number(self, qapp):
+        source = '''<Window>
+            <Slider value="{$level}"/><Progress value="{$level}"/>
+        </Window>'''
+        rt = Runtime(source)
+        rt.state.set("level", 40)
+        rt._prepare()
+        rt._build_tree()
+
+        rt.state.set("level", 70)
+        assert rt.root.findChild(QSlider).value() == 70
+        assert rt.root.findChild(QProgressBar).value() == 70
         rt.root.close()
 
 

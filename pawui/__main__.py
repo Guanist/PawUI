@@ -1,4 +1,4 @@
-"""支持 ``python -m pyx app.pyx``。"""
+"""支持 ``python -m pawui app.paw``。"""
 
 from .cli import main
 

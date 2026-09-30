@@ -106,6 +106,7 @@ class TestTooltip:
         rt.root.close()
 
 
+class TestSelectAndMenu:
     def test_select_bind_and_items_update(self, qapp):
         from PySide6.QtWidgets import QComboBox
         rt = Runtime('<Window><Select items="{$options}" bind="choice"/></Window>')
@@ -120,4 +121,33 @@ class TestTooltip:
         rt.state.set("options", ["b", "c"])
         assert combo.count() == 2
         assert combo.itemText(0) == "b"
+        rt.root.close()
+
+    def test_select_literal_items(self, qapp):
+        """items 支持直接写字面量 —— 以前会被当成一个字符串，静默渲染成空下拉框。"""
+        from PySide6.QtWidgets import QComboBox
+        rt = Runtime('<Window><Select items="[alpha, beta, gamma]" value="beta"/></Window>')
+        rt._prepare()
+        rt._build_tree()
+        combo = rt.root.findChild(QComboBox)
+        assert [combo.itemText(i) for i in range(combo.count())] == ["alpha", "beta", "gamma"]
+        assert combo.currentText() == "beta"
+        rt.root.close()
+
+    def test_select_comma_items_without_brackets(self, qapp):
+        from PySide6.QtWidgets import QComboBox
+        rt = Runtime('<Window><Select items="x, y, z"/></Window>')
+        rt._prepare()
+        rt._build_tree()
+        combo = rt.root.findChild(QComboBox)
+        assert [combo.itemText(i) for i in range(combo.count())] == ["x", "y", "z"]
+        rt.root.close()
+
+    def test_menu_literal_items(self, qapp):
+        from PySide6.QtWidgets import QMenu
+        rt = Runtime('<Window><Menu label="File" items="[New, Open]"/></Window>')
+        rt._prepare()
+        rt._build_tree()
+        menu = rt.root.findChild(QMenu)
+        assert [a.text() for a in menu.actions()] == ["New", "Open"]
         rt.root.close()

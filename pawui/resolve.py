@@ -114,10 +114,12 @@ def resolve_prop_value(value: Any, scope: dict, runtime: Any) -> Any:
     return value
 
 
-def resolve_raw(value: Any, scope: dict, runtime: Any) -> Any:
+def resolve_raw(value: Any, scope: dict, runtime: Any, _seen: set | None = None) -> Any:
     """尽量取原始对象值：单个模板引用返回其底层对象（list/dict/...）而非常规化字符串。
 
-    用于需要集合的字面量，如 ``<For in="{$items}">``。
+    用于需要集合的字面量（``<For in="{$items}">``）和控件取值回调（``bind_state``）。
+    链式引用也要穿透：``<Card value="{$name}"/>`` 里的 ``value`` 本身又是 ``{$name}``
+    时，必须继续往下求值，否则界面上会直接显示字面量 ``{$name}``。
     """
     if isinstance(value, Symbol):
         return resolve_symbol(value, scope, runtime)
@@ -129,7 +131,13 @@ def resolve_raw(value: Any, scope: dict, runtime: Any) -> Any:
             f"{{{refs[0]}}}",
             f"${refs[0]}",
         ):
-            return _resolve_path(refs[0], scope, runtime)
+            resolved = _resolve_path(refs[0], scope, runtime)
+            seen = set(_seen) if _seen else set()
+            base = _base_name(refs[0])
+            if isinstance(resolved, str) and is_template(resolved) and base not in seen:
+                seen.add(base)
+                return resolve_raw(resolved, scope, runtime, seen)
+            return resolved
     return resolve_prop_value(value, scope, runtime)
 
 

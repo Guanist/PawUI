@@ -164,4 +164,5 @@ class TestComponents:
 
         # Four values
         element.props["padding"] = (1, 2, 3, 4)
-        assert comp.padding() == (1, 2, 3, 4)
+        # CSS 简写顺序是「上 / 右 / 下 / 左」，返回值是 Qt 的 (左, 上, 右, 下)
+        assert comp.padding() == (4, 1, 2, 3)

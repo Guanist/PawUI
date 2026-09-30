@@ -15,6 +15,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtWidgets import QGraphicsOpacityEffect, QWidget
+from shiboken6 import isValid
 
 _EASINGS = {
     "linear": QEasingCurve.Type.Linear,
@@ -46,8 +47,14 @@ def is_animation(kind: str) -> bool:
 
 
 def entrance(widget: QWidget, kind: str, duration: int = 260, delay: int = 0,
-             curve: str = "out-cubic") -> QParallelAnimationGroup:
-    """给一个控件做入场动画：淡入 + 可选位移/高度展开。"""
+             curve: str = "out-cubic") -> QParallelAnimationGroup | None:
+    """给一个控件做入场动画：淡入 + 可选位移/高度展开。
+
+    延迟回调可能晚于控件的销毁（<If>/<For> 局部刷新、app.refresh() 全量重建、
+    pawui watch 热重载），因此每一步碰控件之前都要确认 C++ 对象还在。
+    """
+    if not isValid(widget):
+        return None
     group = QParallelAnimationGroup(widget)
 
     effect = QGraphicsOpacityEffect(widget)
@@ -74,6 +81,8 @@ def entrance(widget: QWidget, kind: str, duration: int = 260, delay: int = 0,
         group.addAnimation(height_anim)
 
     def _start() -> None:
+        if not isValid(widget) or not isValid(group):
+            return
         if pos_anim is not None:
             end = widget.pos()
             dx, dy = _SLIDE[kind]

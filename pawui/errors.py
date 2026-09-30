@@ -14,8 +14,8 @@ class Position:
         return f"{self.line}:{self.col}"
 
 
-class PyxError(Exception):
-    """PyX 错误基类，携带位置信息。"""
+class PawUIError(Exception):
+    """PawUI 错误基类，携带位置信息。"""
 
     def __init__(self, message: str, pos: Position | None = None):
         self.message = message
@@ -27,26 +27,30 @@ class PyxError(Exception):
         return f"PawUI error: {self.message}{location}"
 
 
-class LexerError(PyxError):
+class LexerError(PawUIError):
     pass
 
 
-class ParseError(PyxError):
+class ParseError(PawUIError):
     pass
 
 
-class ComponentError(PyxError):
+class ComponentError(PawUIError):
     pass
 
 
-class RenderError(PyxError):
+class RenderError(PawUIError):
     pass
 
 
-class ScriptError(PyxError):
+class ScriptError(PawUIError):
     """script 块里的 Python 代码编译/执行失败。"""
 
     def __init__(self, message: str, pos: Position | None = None, cause: Exception | None = None):
         self.cause = cause
         detail = f"{message}: {cause}" if cause else message
         super().__init__(detail, pos)
+
+
+# 历史名字：早期项目内部叫 PyX，保留别名不算破坏性变更
+PyxError = PawUIError

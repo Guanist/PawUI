@@ -1,4 +1,4 @@
-"""PyX 响应式状态：state.key = value 触发所有绑定的 widget 自动刷新。"""
+"""PawUI 响应式状态：state.key = value 触发所有绑定的 widget 自动刷新。"""
 
 from __future__ import annotations
 

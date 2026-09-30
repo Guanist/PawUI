@@ -44,6 +44,12 @@
 </Component>
 
 <script>
+# 启动时把状态初始化好，否则 {$count} 之类会渲染成空字符串
+state.count = int(state.get("count", 0) or 0)
+state.name = state.get("name", "")
+state.greeting = state.get("greeting", "欢迎使用 PawUI 👋")
+state.theme_light = bool(state.get("theme_light", False))
+
 def increment():
     state.count = int(state.get("count", 0)) + 1
 

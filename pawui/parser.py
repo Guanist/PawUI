@@ -1,4 +1,4 @@
-"""PyUI HTML 风格解析器：<tag attr="v">content</tag>。
+"""PawUI HTML 风格解析器：<tag attr="v">content</tag>。
 
 支持：
   - 普通元素 / 自闭合元素
@@ -61,6 +61,20 @@ class _Scanner:
             self.advance()
         return text
 
+    def read_until_ci(self, token: str) -> str:
+        """大小写不敏感的 ``read_until``：``</script>`` / ``</Script>`` 都得认。
+
+        以前只找小写 ``</script``，而开标签判定却是大小写不敏感的 —— 于是
+        ``<Script>…</Script>`` 会被认成脚本块、然后死在「找不到闭合标签」上。
+        """
+        idx = self.src.lower().find(token.lower(), self.i)
+        if idx == -1:
+            raise ParseError(f"expected {token!r}", self.pos())
+        text = self.src[self.i:idx]
+        while self.i < idx:
+            self.advance()
+        return text
+
 
 class ParS:
     def __init__(self, source: str, filename: str = "<memory>"):
@@ -92,7 +106,7 @@ class ParS:
     def _read_script(self) -> ScriptBlock:
         start = self.s.pos()
         self._read_tag_open()
-        src = self.s.read_until("</script")
+        src = self.s.read_until_ci("</script")
         self._consume_close_tag("script")
         return ScriptBlock(src.strip("\n"), start)
 
@@ -224,4 +238,28 @@ class ParS:
 
 
 def parse(source: str, filename: str = "<memory>") -> Program:
-    return ParS(source, filename).parse()
+    program = ParS(source, filename).parse()
+    _hoist_styles(program)
+    return program
+
+
+def _hoist_styles(program: Program) -> None:
+    """把任意层级的 ``<Style>`` 抽出来集中管理，不让它留在控件树里。
+
+    ``<Style>`` 写在哪一层都是全局作用域 —— 作用域靠选择器表达（``.card Text``），
+    不靠嵌套位置。
+    """
+
+    def visit(children: list[Element]) -> list[Element]:
+        kept: list[Element] = []
+        for el in children:
+            if el.tag.lower() == "style":
+                css = el.props.get("__content__", "")
+                if isinstance(css, str) and css.strip():
+                    program.styles.append(css)
+                continue
+            el.children = visit(el.children)
+            kept.append(el)
+        return kept
+
+    program.elements = visit(program.elements)

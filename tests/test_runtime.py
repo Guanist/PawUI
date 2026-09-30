@@ -3,6 +3,67 @@
 import pytest
 
 from pawui.runtime import Runtime
+from pawui.theme import THEMES
+
+THEMED_APP = """
+<Theme extends="dark">
+  <Color name="accent" value="#8b5cf6"/>
+  <Color name="brand" value="#22d3ee"/>
+</Theme>
+<Window title="t">
+  <Column>
+    <Text color="brand">brand text</Text>
+  </Column>
+</Window>
+"""
+
+
+class TestThemeSwitching:
+    """文件里的 <Theme>/<Color> 覆盖在切主题后不能丢。
+
+    旧行为：``_resolve_theme()`` 只在 ``_prepare()`` 里跑，``set_theme()`` 直接把
+    Theme 对象整个换掉，于是文件里定义的颜色在第一次切主题后就永久丢失，
+    ``color="brand"`` 解析不出来还会被原样拼成非法样式，Qt 静默忽略整条声明。
+    """
+
+    def test_file_overrides_survive_theme_switch(self, qapp):
+        rt = Runtime(THEMED_APP)
+        rt._prepare()
+        rt._build_tree()
+        assert rt.theme.accent == "#8b5cf6"
+        assert rt.theme.custom["brand"] == "#22d3ee"
+
+        # 切到别的内置主题：走那个主题的原样配色，但自定义色不能丢
+        rt.set_theme("light")
+        assert rt.theme.accent == THEMES["light"]().accent
+        assert rt.theme.background == THEMES["light"]().background
+        assert rt.theme.custom["brand"] == "#22d3ee"
+
+        # 切回文件声明的主题：整份覆盖复原
+        rt.set_theme("dark")
+        assert rt.theme.accent == "#8b5cf6"
+        assert rt.theme.custom["brand"] == "#22d3ee"
+        rt.root.close()
+
+    def test_theme_switch_actually_changes_base(self, qapp):
+        rt = Runtime('<Window title="t"><Text>x</Text></Window>')
+        rt._prepare()
+        rt._build_tree()
+        # 不填主题时默认就是浅色 + 蓝色主色
+        assert rt.theme.background == THEMES["light"]().background
+        assert rt.theme.accent == THEMES["light"]().accent
+
+        rt.set_theme("dark")
+        assert rt.theme.background == THEMES["dark"]().background
+        assert rt.theme.background != THEMES["light"]().background
+        rt.root.close()
+
+    def test_unknown_color_warns_instead_of_failing_silently(self, qapp, capsys):
+        rt = Runtime('<Window title="t"><Text color="nope">x</Text></Window>')
+        rt._prepare()
+        rt._build_tree()
+        assert "unknown color 'nope'" in capsys.readouterr().err
+        rt.root.close()
 
 
 class TestRuntime:

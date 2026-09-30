@@ -1,6 +1,6 @@
-"""PyX AST / UI Tree 节点定义。
+"""PawUI AST / UI Tree 节点定义。
 
-解析器输出一棵由 Element / ScriptBlock 组成的内存树，运行时据此构建真正的 Tk 界面。
+解析器输出一棵由 Element / ScriptBlock 组成的内存树，运行时据此构建 Qt 控件树。
 """
 
 from __future__ import annotations
@@ -33,10 +33,11 @@ class ScriptBlock:
 
 @dataclass
 class Program:
-    """整个 .pyx 文件的解析结果。"""
+    """整个 .paw 文件的解析结果。"""
 
     elements: list[Element] = field(default_factory=list)
     script: ScriptBlock | None = None
+    styles: list[str] = field(default_factory=list)
 
 
 @dataclass
