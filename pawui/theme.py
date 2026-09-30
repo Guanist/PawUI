@@ -134,8 +134,10 @@ class Theme:
         QComboBox:hover {{ border-color: {t.accent}; }}
         /* 只换颜色不改宽度：改宽度会让圆角重新计算，右边缘出现接缝 */
         QComboBox:focus {{ border-color: {t.accent}; }}
-        /* 系统默认箭头又小又歪，这里关掉，由 _ThemedComboBox 自绘 chevron */
-        QComboBox::down-arrow {{ image: none; width: 0; height: 0; }}
+        /* 系统默认箭头又小又歪，这里收成 0 尺寸，由 _ThemedComboBox 自绘 chevron。
+           不用 `image: none` —— 那会让 Qt 去解析一个空 pixmap，在部分平台
+           （实测 macOS + offscreen + Qt 6.11）polish 阶段会直接崩。 */
+        QComboBox::down-arrow {{ width: 0; height: 0; border: none; }}
         QComboBox::drop-down {{ border: none; background: transparent; }}
         QComboBox QAbstractItemView {{ background-color: {t.surface}; color: {t.text};
             border: none; padding: 4px; outline: none;
