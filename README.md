@@ -24,6 +24,23 @@ import pawui
 pawui.run("app.paw")
 ```
 
+## 示例
+
+仓库里有两个可以直接跑的示例：
+
+| 文件 | 内容 |
+| --- | --- |
+| `app.paw` | 最小起步：主题、状态绑定、事件、自定义组件 |
+| `examples/showcase.paw` | **全组件总览**：一窗 6 个标签页覆盖全部 44 个内置组件 + `If` / `For` 逻辑标签 |
+
+```bash
+pawui examples/showcase.paw     # 想看某个组件怎么写，直接翻这个文件
+pawui check examples/showcase.paw
+```
+
+`examples/showcase.paw` 同时是被 CI 守着回归的「能跑的文档」：它必须一直通过
+`pawui check`、能完整建树、且不产生 Qt 样式表告警。
+
 ## 语法（HTML 风格）
 
 ```html
@@ -70,7 +87,8 @@ def increment():
 
 ## 内置组件
 
-**44 个组件 + 2 个逻辑容器**，`pawui schema` 会有完整属性表。
+**44 个组件 + 3 个逻辑标签**（`If` / `For` / `Tab`），`pawui schema` 会有完整属性表。
+全部组件的用法都能在 `examples/showcase.paw` 里找到实例。
 
 | 分类 | 组件 |
 | --- | --- |
