@@ -1,0 +1,713 @@
+<!--
+  PawUI 全组件示例 (Showcase)
+  覆盖 schema 里全部 46 个组件：
+    Window Column Row Scroll Tabs Tab Grid SplitPane Panel Accordion Spacer Divider
+    Text Markdown CodeBlock Link Badge Tooltip
+    Button Input TextArea Checkbox RadioGroup Radio Segmented Select Slider
+    NumberInput DatePicker TimePicker FilePicker Menu
+    Table List VirtualList Progress Form Dialog
+    Image Canvas Web Avatar Skeleton Spinner
+    Shortcut  If  For
+  运行： pawui examples/showcase.paw
+-->
+
+<Theme extends="dark">
+  <Color name="accent" value="#8b5cf6"/>
+  <Color name="brand" value="#22d3ee"/>
+  <Color name="surface" value="#1c1e28"/>
+  <Color name="ok" value="#34d399"/>
+</Theme>
+
+<!-- 高度 900：本机 175% DPI 下可用高度 981px，留出任务栏余量，
+     这样 6 个页面基本一屏放得下（不够时每页都有 Scroll 兜底）。 -->
+<Window title="PawUI 全组件示例" width="1140" height="900" theme="dark">
+  <Column padding="16" spacing="12">
+
+    <!-- ============ 顶部栏：Text / Badge / Avatar / Menu / Tooltip / Spacer / Shortcut ============ -->
+    <Row spacing="12" align="center">
+      <Avatar initials="PW" size="42" bg="accent"/>
+      <Column spacing="2">
+        <Text size="19" bold>PawUI 组件总览</Text>
+        <Text size="12" color="subtext">46 个组件 · 一次看全</Text>
+      </Column>
+      <Spacer/>
+      <Badge text="v0.1.3.2" bg="ok" fg="background"/>
+      <Tooltip text="这里演示 Tooltip：悬停显示提示">
+        <Badge text="悬停我" bg="brand" fg="background"/>
+      </Tooltip>
+      <Menu label="更多" items="[关于, 文档, 退出]" on_select="on_menu"/>
+      <Shortcut keys="Ctrl+S" on_press="save"/>
+      <Shortcut keys="Ctrl+K" on_press="focus_search"/>
+    </Row>
+
+    <Divider/>
+
+    <!-- ============ 6 个标签页，把所有组件分组铺开 ============ -->
+    <!-- grow=1：让 Tabs 吃掉窗口剩余高度，各页可视区域最大化（否则内容会被压成一小条） -->
+    <Tabs grow="1">
+      <Tab label="布局">
+        <Column padding="14" spacing="12">
+          <Text size="15" bold>布局容器</Text>
+          <Text size="12" color="subtext">Grid 行优先自动排布 · SplitPane 可拖拽分栏 · Panel/Accordion 折叠</Text>
+
+          <!-- Grid：3 列自动排布 -->
+          <Grid columns="3" gap="10">
+            <StatCard label="组件" value="46" tip="schema 统计"/>
+            <StatCard label="内置" value="41" tip="不含逻辑组件"/>
+            <StatCard label="标签页" value="6" tip="本示例分组"/>
+          </Grid>
+
+          <!-- SplitPane：左右可拖拽 -->
+          <SplitPane ratio="0.42" height="260">
+            <Scroll>
+              <Column padding="10" spacing="8">
+                <Text size="13" bold>左侧 Scroll 区</Text>
+                <Text size="12" color="subtext">这一列在可滚动容器里，内容超长也能滚。</Text>
+                <For each="row" in="{$scroll_rows}">
+                  <Row spacing="8" padding="8" bg="surface" radius="8">
+                    <Badge text="{$row.id}" bg="accent" size="10"/>
+                    <Text size="12">{$row.name}</Text>
+                    <Spacer/>
+                    <Text size="11" color="subtext">{$row.note}</Text>
+                  </Row>
+                </For>
+              </Column>
+            </Scroll>
+
+            <Scroll>
+              <Column padding="10" spacing="10">
+                <Text size="13" bold>右侧：Accordion + Panel</Text>
+
+                <Accordion multiple="false">
+                  <Panel title="常规设置" open="true">
+                    <Column padding="8" spacing="10">
+                      <Row spacing="8" align="center">
+                        <Text size="12" width="64" color="subtext">主题</Text>
+                        <Segmented items="[深色, 浅色]" value="{$mode}" on_change="on_mode"/>
+                      </Row>
+                      <Row spacing="8" align="center">
+                        <Text size="12" width="64" color="subtext">字号</Text>
+                        <Slider min="10" max="24" value="{$font_size}" bind="font_size" on_change="on_font"/>
+                        <Badge text="{$font_size}" bg="surface"/>
+                      </Row>
+                    </Column>
+                  </Panel>
+
+                  <Panel title="高级设置">
+                    <Column padding="8" spacing="10">
+                      <Row spacing="8" align="center">
+                        <Text size="12" width="64" color="subtext">环境</Text>
+                        <Select items="[生产, 预发, 开发]" value="{$env}" bind="env"/>
+                      </Row>
+                      <Row spacing="8" align="center">
+                        <Text size="12" width="64" color="subtext">线程</Text>
+                        <NumberInput min="1" max="32" step="1" value="{$threads}" bind="threads"/>
+                      </Row>
+                      <Checkbox checked="{$auto_save}" bind="auto_save">自动保存</Checkbox>
+                    </Column>
+                  </Panel>
+                </Accordion>
+              </Column>
+            </Scroll>
+          </SplitPane>
+        </Column>
+      </Tab>
+
+      <Tab label="文本">
+        <Row padding="14" spacing="14" grow="1">
+          <!-- 左：Text / Markdown / Link / Badge / Tooltip -->
+          <Scroll grow="1">
+            <Column spacing="12">
+              <Text size="15" bold>文本与展示</Text>
+              <Text size="22" bold color="brand">Text 标题 22px 粗体</Text>
+              <Text size="14">普通正文 Text，支持 {$name} 这类状态插值。</Text>
+              <Text size="13" color="subtext">副文本 subtext 颜色</Text>
+              <Text size="14" italic color="accent">斜体 + 强调色</Text>
+
+              <Row spacing="8" align="center">
+                <Badge text="NEW" bg="danger"/>
+                <Badge text="beta" bg="accent" size="10" radius="8"/>
+                <Badge text="稳定" bg="ok" fg="background"/>
+                <Tooltip text="Tooltip 的提示文字">
+                  <Badge text="悬停" bg="surface"/>
+                </Tooltip>
+              </Row>
+
+              <Divider/>
+
+              <Text size="13" bold>Link</Text>
+              <Link href="https://pawui.pages.dev">PawUI 官网（external）</Link>
+              <Link href="#docs" external="false" on_click="on_link">内部链接（走 on_click）</Link>
+
+              <Divider/>
+
+              <Text size="13" bold>Markdown</Text>
+              <Markdown>{$readme}</Markdown>
+            </Column>
+          </Scroll>
+
+          <!-- 右：CodeBlock / Image / Avatar / Skeleton / Spinner -->
+          <Scroll grow="1">
+            <Column spacing="12">
+              <Text size="15" bold>代码 / 媒体 / 加载态</Text>
+
+              <Text size="13" bold>CodeBlock</Text>
+              <CodeBlock language="python" numbers="true" height="150">def increment():
+    state.count = state.get("count", 0) + 1
+    return state.count
+
+# CodeBlock 里同样会做状态插值，所以代码示例里别写花括号占位
+# state 一变，绑定了该状态的地方自动刷新
+ready(lambda: app.toast("就绪", "success"))</CodeBlock>
+
+              <Text size="13" bold>Canvas（QPainter 自绘）</Text>
+              <Canvas id="chart" width="420" height="130" on_draw="paint" on_press="on_paint_click"/>
+
+              <Text size="13" bold>Image / Avatar</Text>
+              <Row spacing="12" align="center">
+                <Image src="{$logo}" width="52"/>
+                <Avatar initials="PW" size="48" bg="accent"/>
+                <Avatar initials="UI" size="48" bg="brand" fg="background"/>
+                <Column spacing="4">
+                  <Text size="12" color="subtext">Skeleton（占位）</Text>
+                  <Skeleton width="180" height="12" radius="6"/>
+                  <Skeleton width="120" height="12" radius="6"/>
+                </Column>
+                <Column spacing="4" align="center">
+                  <Text size="12" color="subtext">Spinner</Text>
+                  <Spinner size="26" thickness="3" color="{$spin_color}"/>
+                </Column>
+              </Row>
+
+              <Text size="13" bold>Web（内嵌 HTML）</Text>
+              <Web html="<html><body style='margin:0;font-family:Segoe UI;background:#1c1e28;color:#e6e6ef'><div style='padding:12px'><h2 style='margin:0 0 6px;color:#8b5cf6'>内嵌 Web 组件</h2><p style='margin:0'>这段 HTML 由 &lt;Web&gt; 直接渲染，不需要独立页面。</p><ul style='margin:6px 0 0'><li>需要 PySide6-Addons</li><li>也支持 src 指向 URL</li></ul></div></body></html>" height="130"/>
+            </Column>
+          </Scroll>
+        </Row>
+      </Tab>
+
+      <Tab label="表单">
+        <Scroll grow="1">
+          <Column padding="14" spacing="12">
+            <Text size="15" bold>表单控件与校验</Text>
+            <Text size="12" color="subtext">Input / TextArea / Checkbox / RadioGroup / Radio / Segmented / Select / Slider / NumberInput / DatePicker / TimePicker / FilePicker</Text>
+
+            <!-- 左右两栏：单列排下来会超出可视高度（175% DPI 下页面只有 ~717px） -->
+            <Row spacing="14" align="start" grow="1">
+              <!-- 左栏：Form 校验 -->
+              <Column spacing="12" grow="1">
+                <!-- Form：app.submit() 先校验，再画错误 -->
+                <Form on_submit="on_submit">
+                  <Column padding="12" spacing="12" bg="surface" radius="12">
+                    <Text size="13" bold>新建任务（必填校验）</Text>
+
+                    <Column spacing="6">
+                      <Text size="12" color="subtext">任务名 *</Text>
+                      <Input id="task_name" placeholder="至少 3 个字" required="true" min_length="3"
+                             error="任务名至少 3 个字符" value="{$task_name}" bind="task_name"/>
+                    </Column>
+                    <Column spacing="6">
+                      <Text size="12" color="subtext">负责人 *</Text>
+                      <Input placeholder="必填" required="true" error="负责人不能为空" bind="owner"/>
+                    </Column>
+
+                    <Column spacing="6">
+                      <Text size="12" color="subtext">描述</Text>
+                      <TextArea height="60" placeholder="补充说明…" value="{$desc}" bind="desc"/>
+                    </Column>
+
+                    <Row spacing="16" align="center">
+                      <RadioGroup value="{$priority}" bind="priority">
+                        <Text size="12" color="subtext">优先级</Text>
+                        <Radio value="low">低</Radio>
+                        <Radio value="mid">中</Radio>
+                        <Radio value="high">高</Radio>
+                      </RadioGroup>
+                      <Spacer/>
+                      <Checkbox checked="{$notify}" bind="notify">完成后通知</Checkbox>
+                    </Row>
+
+                    <Row spacing="10">
+                      <Button on_click="do_submit">提交（走校验）</Button>
+                      <Button on_click="do_reset" bg="surface" fg="text">重置</Button>
+                    </Row>
+                    </Column>
+                </Form>
+              </Column>
+
+              <!-- 右栏：日期/时间/选择/数字/滑块/文件 + Dialog -->
+              <Column spacing="12" grow="1">
+                <Column padding="12" spacing="12" bg="surface" radius="12">
+                  <Text size="13" bold>调度与属性</Text>
+
+                  <Row spacing="12" align="center">
+                    <Column spacing="6" grow="1">
+                      <Text size="12" color="subtext">截止日期</Text>
+                      <DatePicker value="{$due_date}" bind="due_date"/>
+                    </Column>
+                    <Column spacing="6" grow="1">
+                      <Text size="12" color="subtext">提醒时间</Text>
+                      <TimePicker value="18:00" format="HH:mm" on_change="on_time"/>
+                    </Column>
+                  </Row>
+
+                  <Row spacing="12" align="center">
+                    <Column spacing="6" grow="1">
+                      <Text size="12" color="subtext">类型</Text>
+                      <Select items="[开发, 设计, 测试, 运维]" value="{$kind}" bind="kind"/>
+                    </Column>
+                    <Column spacing="6" grow="1">
+                      <Text size="12" color="subtext">预估工时</Text>
+                      <NumberInput min="1" max="100" step="1" value="{$hours}" bind="hours"/>
+                    </Column>
+                  </Row>
+
+                  <Column spacing="6">
+                    <Text size="12" color="subtext">投入比例</Text>
+                    <Row spacing="10" align="center">
+                      <Slider min="0" max="100" step="5" value="{$ratio}" bind="ratio" on_change="on_ratio"/>
+                      <Badge text="{$ratio}%" bg="accent" fg="background"/>
+                    </Row>
+                  </Column>
+
+                  <Column spacing="6">
+                    <Text size="12" color="subtext">附件</Text>
+                    <FilePicker label="选择文件" mode="open" filter="所有文件 (*.*)" on_pick="on_file"/>
+                  </Column>
+
+                  <Divider/>
+
+                  <Row spacing="10" align="center">
+                    <Button on_click="open_dialog" bg="accent" fg="background">打开 Dialog</Button>
+                    <If condition="{$dialog_open}">
+                      <Badge text="Dialog 已打开" bg="ok" fg="background"/>
+                    </If>
+                  </Row>
+                </Column>
+
+                <!-- Dialog：open 绑定状态 -->
+                <Dialog title="确认操作" open="{$dialog_open}" accept="确定" cancel="取消"
+                        on_accept="on_dialog_ok" on_reject="on_dialog_cancel">
+                  <Text size="13" color="subtext">这是一个 Dialog 容器，open 由 {$dialog_open} 控制。</Text>
+                  <Input placeholder="备注（可选）" bind="dialog_note"/>
+                </Dialog>
+              </Column>
+            </Row>
+          </Column>
+        </Scroll>
+      </Tab>
+
+      <Tab label="数据">
+        <Column padding="14" spacing="12">
+          <Text size="15" bold>数据组件</Text>
+          <Text size="12" color="subtext">Table 排序选行 · List 单选 · VirtualList 只建视口行 · For 手写列表 · If 条件渲染</Text>
+
+          <Row spacing="12" grow="1">
+            <Column spacing="8" grow="2">
+              <Text size="13" bold>Table（可点表头排序）</Text>
+              <Table columns="[组件, 分类, 数量]"
+                     rows="{$table_rows}"
+                     height="220"
+                     sortable="true"
+                     striped="true"
+                     index="true"
+                     on_select="on_table"/>
+              <Text size="12" color="subtext">{$table_pick}</Text>
+
+              <Text size="13" bold>List（单选）</Text>
+              <List items="{$list_items}" value="{$list_value}" bind="list_value"
+                    height="150" on_select="on_list"/>
+              <Text size="12" color="subtext">当前选中：{$list_value}</Text>
+            </Column>
+
+            <Column spacing="8" grow="3">
+              <Row spacing="8" align="center">
+                <Text size="13" bold>VirtualList（{$row_count} 行，只建视口内的控件）</Text>
+                <Badge text="性能" bg="brand" fg="background"/>
+              </Row>
+              <VirtualList rows="{$big_rows}" row_height="34" height="300">
+                <Row spacing="8" padding="6" bg="surface" radius="6">
+                  <Badge text="{$index}" bg="accent" size="10"/>
+                  <Text size="12">{$item.name}</Text>
+                  <Spacer/>
+                  <Text size="11" color="subtext">{$item.tag}</Text>
+                </Row>
+              </VirtualList>
+
+              <Text size="13" bold>For + If（手写列表，条件渲染）</Text>
+              <For each="todo" in="{$todos}">
+                <If condition="{$todo.done}">
+                  <Text size="12" color="ok">✔ {$todo.text}（已完成）</Text>
+                </If>
+                <If condition="{$todo.pending}">
+                  <Text size="12" color="subtext">◻ {$todo.text}（进行中）</Text>
+                </If>
+              </For>
+            </Column>
+          </Row>
+        </Column>
+      </Tab>
+
+      <Tab label="交互">
+        <Scroll grow="1">
+          <Column padding="14" spacing="12">
+            <Text size="15" bold>事件、进度与脚本操作</Text>
+
+            <Row spacing="12" align="center">
+              <Button on_click="inc">点我 +1</Button>
+              <Button on_click="reset_counter" bg="surface" fg="text">清零</Button>
+              <Button on_click="toast_it" bg="accent" fg="background">Toast</Button>
+              <Button disabled="true" bg="surface" fg="subtext">禁用按钮</Button>
+              <Tooltip text="按钮也可以包在 Tooltip 里">
+                <Button on_click="append_row" bg="surface" fg="text">append 一行</Button>
+              </Tooltip>
+            </Row>
+
+            <Text size="13">已点击 <Text size="13" bold color="accent">{$count}</Text> 次 · {$greeting}</Text>
+
+            <Divider/>
+
+            <Text size="13" bold>Progress / Slider / Spinner</Text>
+            <Column spacing="8">
+              <Progress value="{$progress}" max="100" height="14" text="true"/>
+              <Progress value="85" max="100" height="14" accent="ok"/>
+              <Row spacing="10" align="center">
+                <Slider min="0" max="100" value="{$progress}" bind="progress"/>
+                <Badge text="{$progress}%" bg="surface"/>
+                <Spinner size="20" thickness="3"/>
+                <Text size="12" color="subtext">Spinner</Text>
+              </Row>
+            </Column>
+
+            <Divider/>
+
+            <Text size="13" bold>脚本操作 DOM</Text>
+            <Row spacing="10" align="center">
+              <Button on_click="toggle_class" bg="surface" fg="text">切换高亮 class</Button>
+              <Button on_click="inject" bg="surface" fg="text">inject_css</Button>
+              <Button on_click="query_text" bg="surface" fg="text">读 #target 文本</Button>
+            </Row>
+            <Text id="target" size="14" color="brand">#target 这段文字会被脚本改。</Text>
+            <Column id="list" spacing="6" bg="surface" padding="10" radius="10">
+              <Text size="12" color="subtext">#list 容器：下面的行由 app.append 插入</Text>
+            </Column>
+
+            <Divider/>
+
+            <Text size="13" bold>状态一览（{$count} / {$progress} / {$list_value}）</Text>
+            <Markdown>{$tips}</Markdown>
+          </Column>
+        </Scroll>
+      </Tab>
+
+      <Tab label="主题">
+        <Scroll grow="1">
+          <Column padding="14" spacing="12">
+          <Text size="15" bold>主题与颜色令牌</Text>
+          <Text size="12" color="subtext">下面这些色块直接引用主题令牌，切主题时整体跟着变。</Text>
+
+          <Grid columns="4" gap="10">
+            <Swatch label="accent" token="accent"/>
+            <Swatch label="brand" token="brand"/>
+            <Swatch label="ok" token="ok"/>
+            <Swatch label="danger" token="danger"/>
+            <Swatch label="surface" token="surface"/>
+            <Swatch label="border" token="border"/>
+            <Swatch label="subtext" token="subtext"/>
+            <Swatch label="背景" token="background"/>
+          </Grid>
+
+          <Divider/>
+
+          <Row spacing="12" align="center">
+            <Button on_click="theme_dark">深色主题</Button>
+            <Button on_click="theme_light" bg="surface" fg="text">浅色主题</Button>
+            <Text size="13" color="subtext">当前：{$theme_name}</Text>
+          </Row>
+
+          <Divider/>
+
+          <Text size="13" bold>&lt;Style&gt; 块：CSS3 选择器</Text>
+          <Text size="12" color="subtext">下面两张卡片由 .demo-card 类、.demo-title 与 #save-btn 选择器控制外观。</Text>
+          <Row spacing="12">
+            <Column class="demo-card" padding="14" spacing="6" grow="1">
+              <Text class="demo-title" size="13" bold>.demo-card</Text>
+              <Text size="12" color="subtext">圆角、内边距、背景、悬停都由 Style 块给出。</Text>
+            </Column>
+            <Column class="demo-card" padding="14" spacing="6" grow="1">
+              <Text class="demo-title" size="13" bold>.demo-card 第二张</Text>
+              <Text size="12" color="subtext">同一个类，样式一致。</Text>
+            </Column>
+          </Row>
+          <Button id="save-btn" on_click="save">#save-btn 有独立样式</Button>
+
+          <Text size="12" color="subtext">快捷键：Ctrl+S 保存，Ctrl+K 聚焦搜索框。</Text>
+          <Input id="search" placeholder="搜索组件…（Ctrl+K 聚焦）"/>
+          </Column>
+        </Scroll>
+      </Tab>
+    </Tabs>
+  </Column>
+</Window>
+
+<!-- ================= 自定义组件 ================= -->
+
+<Component name="StatCard">
+  <Column padding="12" spacing="2" bg="surface" radius="10">
+    <Text size="11" color="subtext">{$label}</Text>
+    <Text size="20" bold color="accent">{$value}</Text>
+    <Text size="10" color="subtext">{$tip}</Text>
+  </Column>
+</Component>
+
+<Component name="Swatch">
+  <Column padding="10" spacing="6" bg="surface" radius="10">
+    <Column height="34" radius="8" bg="{$token}"/>
+    <Text size="12" bold>{$label}</Text>
+    <Text size="10" color="subtext">var(--{$token})</Text>
+  </Column>
+</Component>
+
+<Style>
+  /* 注意：PawUI 把用户 CSS 按控件**内联**下发（runtime._apply_user_css），
+     所以这里刻意不用「.容器 Text」这类后代选择器 —— 内联到 QLabel 自身时，
+     Qt 会因「该控件不是 .容器 的后代」而报样式表解析失败。
+     需要批量上色的元素直接给它加 class。 */
+  :root { --demo: #8b5cf6; }
+  .demo-card        { bg: #20222e; radius: 12px; padding: 14px; border: 1 solid #34384a; }
+  .demo-card:hover  { border-color: var(--demo); }
+  .demo-title       { color: #ffffff; }
+  #save-btn         { radius: 10px; }
+  #target.highlight { color: var(--demo); }
+</Style>
+
+<script>
+# ---------------- 初始化 state（.paw 里 {$x} 必须有初始值，否则渲染为空） ----------------
+state.count = int(state.get("count", 0) or 0)
+state.progress = int(state.get("progress", 40) or 0)
+state.greeting = state.get("greeting", "欢迎使用 PawUI")
+state.name = state.get("name", "PawUI")
+
+state.mode = state.get("mode", "深色")
+state.font_size = int(state.get("font_size", 14) or 14)
+state.env = state.get("env", "开发")
+state.threads = int(state.get("threads", 4) or 4)
+state.auto_save = bool(state.get("auto_save", True))
+
+state.task_name = state.get("task_name", "")
+state.desc = state.get("desc", "")
+state.priority = state.get("priority", "mid")
+state.notify = bool(state.get("notify", True))
+state.due_date = state.get("due_date", "2026-09-30")
+state.kind = state.get("kind", "开发")
+state.hours = int(state.get("hours", 8) or 8)
+state.ratio = int(state.get("ratio", 50) or 50)
+state.dialog_open = bool(state.get("dialog_open", False))
+state.dialog_note = state.get("dialog_note", "")
+
+state.table_pick = state.get("table_pick", "点一行看回调：")
+state.list_value = state.get("list_value", "Table")
+state.list_items = ["Table", "List", "VirtualList", "Canvas", "Markdown"]
+state.row_count = 5000
+state.theme_name = state.get("theme_name", "深色（accent 紫）")
+state.spin_color = state.get("spin_color", "#8b5cf6")
+state.logo = state.get("logo", "")
+
+# Table 行：dict 按列名取值
+state.table_rows = [
+    {"组件": "Button",      "分类": "交互", "数量": 1},
+    {"组件": "Table",       "分类": "数据", "数量": 1},
+    {"组件": "VirtualList", "分类": "数据", "数量": 1},
+    {"组件": "Canvas",      "分类": "绘图", "数量": 1},
+    {"组件": "Markdown",    "分类": "文本", "数量": 1},
+    {"组件": "SplitPane",   "分类": "布局", "数量": 1},
+]
+
+# Scroll 区里的 For 数据
+state.scroll_rows = [
+    {"id": "01", "name": "Window / Column / Row", "note": "基础"},
+    {"id": "02", "name": "Grid / Scroll",         "note": "排布"},
+    {"id": "03", "name": "SplitPane",             "note": "可拖拽"},
+    {"id": "04", "name": "Panel / Accordion",     "note": "折叠"},
+    {"id": "05", "name": "Spacer / Divider",      "note": "间距"},
+    {"id": "06", "name": "Tabs / Tab",            "note": "分组"},
+]
+
+# For + If 的数据
+state.todos = [
+    {"text": "调研 46 个组件", "done": True,  "pending": False},
+    {"text": "写 showcase.paw", "done": True,  "pending": False},
+    {"text": "跑 check / render", "done": False, "pending": True},
+    {"text": "截图验收", "done": False, "pending": True},
+]
+
+# VirtualList 的 5000 行
+state.big_rows = [
+    {"name": "row-%05d" % i, "tag": ["布局", "文本", "交互", "数据"][i % 4]}
+    for i in range(5000)
+]
+
+state.readme = """### Markdown 组件
+
+把 Markdown 转成 Qt 富文本，**粗体**、*斜体*、`行内代码` 都能渲染。
+
+- 标题、列表、引用
+- 不需要浏览器内核
+
+> 转换器刻意写小，够 UI 用就行。
+"""
+
+state.tips = """**脚本提示**：`app.query()` / `app.on()` / `app.append()` / `app.toast()` 都能在 `ready()` 之后用。
+
+- 事件会冒泡，点卡片里的文字也能触发卡片上的处理函数
+- `state.k = v` 会立刻刷新绑定了 `{$k}` 的地方
+"""
+
+# ---------------- 事件处理 ----------------
+
+def inc():
+    state.count = int(state.get("count", 0)) + 1
+    state.greeting = "已经点了 %d 次" % state.count
+
+def reset_counter():
+    state.count = 0
+    state.greeting = "已清零"
+
+def toast_it():
+    app.toast("这是一个 Toast 提示 🎉", "success")
+
+def save():
+    app.toast("已保存（Ctrl+S）", "success")
+
+def focus_search():
+    try:
+        app.query("#search").widget.setFocus()
+        app.toast("焦点已给搜索框（Ctrl+K）", "info")
+    except Exception as exc:
+        app.toast("聚焦失败: %s" % exc, "error")
+
+def on_menu(text):
+    app.toast("菜单选择：%s" % text, "info")
+
+def on_link():
+    app.toast("点了内部链接", "info")
+
+def on_mode(value):
+    state.mode = value
+    if value == "浅色":
+        theme_light()
+    else:
+        theme_dark()
+
+def theme_dark():
+    state.theme_name = "深色（accent 紫）"
+    app.set_theme("dark")
+    app.refresh()
+
+def theme_light():
+    state.theme_name = "浅色"
+    app.set_theme("light")
+    app.refresh()
+
+def on_font(value):
+    state.font_size = int(value)
+
+def on_ratio(value):
+    state.ratio = int(value)
+
+def on_time(value):
+    app.toast("时间改为 %s" % value, "info")
+
+def on_file(path):
+    app.toast("已载入 %s" % path, "success")
+
+# ---- 表单：app.submit() 先校验，通过才调 on_submit ----
+def do_submit():
+    app.submit()
+
+def on_submit():
+    app.toast("提交成功：%s [%s]" % (state.get("task_name", ""), state.get("priority", "")), "success")
+
+def do_reset():
+    state.task_name = ""
+    state.desc = ""
+    state.owner = ""
+    state.priority = "mid"
+    state.notify = True
+    state.progress = 0
+    app.refresh()
+
+def open_dialog():
+    state.dialog_open = True
+
+def on_dialog_ok():
+    state.dialog_open = False
+    app.toast("Dialog 确定：%s" % (state.get("dialog_note", "") or "无备注"), "success")
+
+def on_dialog_cancel():
+    state.dialog_open = False
+    app.toast("Dialog 取消", "warning")
+
+# ---- 数据组件回调 ----
+def on_table(row):
+    state.table_pick = "选中行：" + " / ".join(str(c) for c in row)
+
+def on_list(value):
+    state.list_value = value
+    app.toast("List 选中 %s" % value, "info")
+
+# ---- Canvas：QPainter 自绘 + 点击 ----
+def paint(p):
+    w, h = p.size()
+    p.clear("#1c1e28")
+    p.text(10, 8, "Canvas 自绘柱状图", size=12, color="#e6e6ef", bold=True)
+    values = [22, 46, 34, 68, 52, 80]
+    for i, v in enumerate(values):
+        x = 14 + i * 66
+        bar_h = int(v * 1.2)
+        p.rect(x, h - 22 - bar_h, 44, bar_h, radius=6, fill="#8b5cf6")
+        p.text(x + 14, h - 18, str(v), size=10, color="#8a8fa3")
+    p.line(12, h - 22, w - 12, h - 22, color="#34384a", width=1)
+
+def on_paint_click(x, y):
+    app.toast("Canvas 点击 (%d, %d)" % (x, y), "info")
+
+# ---- 脚本操作 DOM ----
+def toggle_class():
+    try:
+        el = app.query("#target")
+        el.toggle_class("highlight")
+        app.toast("已切换 #target 的 class", "info")
+    except Exception as exc:
+        app.toast("失败: %s" % exc, "error")
+
+def inject():
+    try:
+        app.inject_css("Progress { radius: 8px; } Button { radius: 10px; }")
+        app.toast("已 inject_css", "success")
+    except Exception as exc:
+        app.toast("失败: %s" % exc, "error")
+
+def query_text():
+    try:
+        app.toast("读取 #target：%s" % app.query("#target").text, "info")
+    except Exception as exc:
+        app.toast("失败: %s" % exc, "error")
+
+def append_row():
+    try:
+        app.append("#list", "<Row spacing='8' padding='6' bg='background' radius='6'>"
+                            "<Badge text='NEW' bg='accent' size='10'/>"
+                            "<Text size='12'>由 app.append 插入的一行</Text></Row>")
+        app.toast("已 append 一行", "success")
+    except Exception as exc:
+        app.toast("append 失败: %s" % exc, "error")
+
+# ---------------- ready：建树之后再挂全局事件 ----------------
+def wire():
+    app.on(".demo-card", "click", lambda e: app.toast("点到了 .demo-card（事件冒泡）", "info"))
+    app.on("#target", "click", lambda e: app.toast("#target 被点击", "info"))
+    state.greeting = "组件已就绪，试试各个标签页"
+
+ready(wire)
+</script>

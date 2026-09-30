@@ -1,0 +1,94 @@
+name: release
+
+# 打 tag 就发版：v0.1.3.2 -> 跑测试 -> 校验版本 -> 传 PyPI -> 建 GitHub Release。
+# 也可以手动触发（workflow_dispatch）用于重跑失败的上传 —— 手动触发只构建校验，不发布。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 建 GitHub Release 需要
+
+jobs:
+  # 先跑测试：发版不能靠「本地跑过」就上，tag 打完才发现测试红是最糟的情况
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: System deps (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libfontconfig1 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-randr0 \
+            libxcb-render-util0 libxcb-xinerama0
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Tests (offscreen)
+        run: python -m pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      # 手动触发时没有 tag，用 pyproject 里的版本号做兜底
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip build twine
+
+      - name: System deps (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libfontconfig1 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-randr0 \
+            libxcb-render-util0 libxcb-xinerama0
+
+      # 版本号 / CHANGELOG / 示例三者一致才继续；tag 与 pyproject 对不上直接失败
+      - name: Verify release metadata
+        run: |
+          python -m pip install -e . --no-deps
+          python tools/release_check.py "$RELEASE_TAG"
+
+      - name: Build
+        run: |
+          python -m build
+          python -m twine check dist/*
+
+      # 只在打了 tag 时上传；workflow_dispatch 手动跑时仅构建 + 校验
+      - name: Upload to PyPI
+        if: github.ref_type == 'tag'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload --non-interactive --disable-progress-bar \
+            --skip-existing dist/*
+
+      - name: Prepare release notes
+        if: github.ref_type == 'tag'
+        run: python tools/release_notes.py "$RELEASE_TAG" > release-notes.md && cat release-notes.md
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --title "PawUI ${RELEASE_TAG#v}" \
+            --notes-file release-notes.md \
+            dist/* || echo "Release 已存在，跳过"

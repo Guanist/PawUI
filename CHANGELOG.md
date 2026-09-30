@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.1.3.2] - 2026-09-30
+
+### 修复
+- **`<Text>` 上的 class / id 样式全部失效（静默）**：`<Style>` 的用户规则是**按控件
+  内联追加**到自带样式表后面的（`runtime._apply_user_css`），而 Qt 只在「整段没有 `{`」
+  时才把样式表当裸声明解析 —— 一旦拼上 `.hl { … }` 这类规则，`<Text>` 前面那串
+  裸声明（`color:…; font-size:…`）就会被当成选择器，整张表解析失败，Qt 在 stderr
+  丢一句 `Could not parse stylesheet` 就完事。于是 `<Text class="x">` / `<Text id="x">`
+  的样式**看起来配了、实际一点没生效**。现在 `Text` 的内联样式统一包成
+  `QLabel { … }`。其余组件（Button / Input / Badge / Slider / Divider …）自带样式
+  本来就带选择器前缀，不受影响。
+- **`<Tabs>` 里放 `<Dialog>` 直接崩（`AttributeError: 'Dialog' object has no
+  attribute '_justify'`）**：`Dialog` 自己搭布局、没走 `Container.build()`，因此
+  没初始化 `_justify` / `_cross_align`；而 `Tabs` 建完子元素会对它调
+  `Container.add_child()`，那里无条件读这两个字段。现在默认值提到 `Component`
+  基类，并且 `Dialog` 自己也会读 `justify` / `align` 属性（不再被默认值吞掉）。
+  同类隐患（`Grid` / `Accordion` 等自建布局的容器）一并消除。
+- **`pawui check` 把 22 个组件误报成 `unknown component`**：`cli.py` 从
+  `components` 导入了基础 22 项的 `BUILTINS`，而 runtime 用的是
+  `widgets.BUILTINS`（合并后的 44 项）。于是 `Badge` `Table` `Canvas`
+  `Markdown` `SplitPane` 等明明能跑，`check` 却一律报错 —— `pawui check` 在
+  真实项目上基本不可用。现在两边共用同一份注册表。
+
+### 测试
+- 新增 `tests/test_regressions_0132.py`（13 条），分别钉住上面三条的触发路径：
+  `cli.BUILTINS is widgets.BUILTINS`、`Tabs` × 8 种容器子类、以及用
+  `qInstallMessageHandler` 捕获 Qt 的样式表解析告警断言为空。
+- 全量 354 passed。
+
+### 示例
+- 新增 `examples/showcase.paw`：一窗 6 个标签页覆盖全部 44 个内置组件 +
+  `If` / `For` / `Tab` 三个逻辑标签，`pawui check` / `render` 均干净通过。
+  它也是上面三个问题的发现现场。
+
 ## [0.1.3.1] - 2026-09-30
 
 ### 修复

@@ -8,10 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from . import docsfeed
-from .components import BUILTINS
 from .errors import PyxError
 from .parser import parse
 from .runtime import Runtime
+
+# check 必须和 runtime 用**同一份**注册表，否则会把 runtime 明明支持的组件
+# 判成 unknown。`components.BUILTINS` 只是基础 22 个，`widgets.BUILTINS`
+# 才是合并后的 44 个全量（widgets 里的注释也写明「runtime 只认这一份」）。
+# 这里放在 runtime 之后导入：widgets 依赖 components，顺序反过来会有循环导入风险。
+from .widgets import BUILTINS  # noqa: E402
 
 # Windows 控制台默认编码是 cp936：stdout 一旦被管道 / 文件 / CI 日志捕获，
 # 非 ASCII 输出会直接抛 UnicodeEncodeError 把整个命令带崩（退出码 1）。

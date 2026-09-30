@@ -326,6 +326,12 @@ class Component:
         self.layout: Any = None
         self._children: list[Component] = []
         self._unwatch: list[Any] = []
+        # 容器布局策略：`Container.build()` 会按属性重新赋值，但像 `Dialog`
+        # 这种自己搭 QVBoxLayout、没走 `super().build()` 的子类不会 —— 而
+        # `Container.add_child()` 无条件读这两个字段（Tabs 就会对子元素调它），
+        # 所以在基类给默认值，别让子类漏初始化直接 AttributeError。
+        self._justify: str = "start"
+        self._cross_align: str = "start"
         # 组件自带的默认样式；用户 CSS 追加在它后面（同一张表里后写胜出）
         self._base_qss: str = ""
         self._base_qss_locked: bool = False
@@ -674,7 +680,11 @@ class Text(Component):
         underline = self.opt_bool("underline", False)
         if underline:
             style += " text-decoration:underline;"
-        label.setStyleSheet(style)
+        # 必须包成 `QLabel { … }` 而不是裸声明：用户 <Style> 的规则是**按控件内联**
+        # 追加到这段文本后面的（runtime._apply_user_css），而 Qt 只在「整段没有 {」
+        # 时才按裸声明解析；一旦拼上 `.x { … }` 这类规则，前面这串裸声明就会被
+        # 当成选择器，整张表解析失败 —— 表现为 Text 上的 class / id 样式全部失效。
+        label.setStyleSheet(f"QLabel {{ {style} }}")
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         # 文本属性直接当 props 用（等价于在 <Style> 里写 .x { wrap: true }）
         apply_text_props(label, {
@@ -1072,6 +1082,10 @@ class Dialog(Container):
             f"QWidget {{ background:{self.opt_color('bg', self.theme.surface)};"
             f" border-radius:{self.opt_int('radius', 12)}px; }}"
         )
+        # Dialog 自己搭布局、没走 Container.build()，这里补上容器级别的策略字段，
+        # 否则 add_child() 只能拿到基类默认值，Dialog 上写的 justify / align 会失效。
+        self._justify = str(self.opt_str("justify", "start")).strip().lower()
+        self._cross_align = str(self.opt_str("align", "start")).strip().lower()
         panel.setVisible(self.opt_bool("open", True))
         self.widget = panel
         self.layout = lay
