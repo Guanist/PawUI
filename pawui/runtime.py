@@ -244,12 +244,22 @@ class Runtime:
         # 建树过程中子控件还没被 layout 挂到父节点上，后代选择器（.card Text）
         # 那时找不到祖先；整棵树建完后再刷一遍，级联才算真正生效。
         self._refresh_widget_styles()
-        self.app.setStyleSheet(self.theme.qss())  # type: ignore[attr-defined]
+        self._apply_app_stylesheet()
         self.root.setWindowTitle(comp.opt_str("title", "PawUI"))  # type: ignore[union-attr]
         self.root.resize(comp.opt_int("width", 480), comp.opt_int("height", 640))  # type: ignore[union-attr]
         self.root.show()  # type: ignore[union-attr]
         QTimer.singleShot(0, self._start_animations)
         self._run_ready()
+
+    def _apply_app_stylesheet(self) -> None:
+        """给整个应用套主题基线（滚动条 / 菜单 / 提示框这些细节控件靠它）。
+
+        ``self.app`` 是 Qt 对象，应用已经销毁时再调就是碰野指针，直接跳过。
+        """
+        app = self.app
+        if app is None or not isValid(app):
+            return
+        app.setStyleSheet(self.theme.qss())  # type: ignore[attr-defined]
 
     def _build_element(self, element: Element, parent: Component | None, scope: dict,
                        delay_bonus: int = 0) -> Component:
@@ -631,7 +641,7 @@ class Runtime:
             if name_or_theme in THEMES:
                 self._theme_name = name_or_theme
                 self._apply_theme()
-        self.app.setStyleSheet(self.theme.qss())  # type: ignore[attr-defined]
+        self._apply_app_stylesheet()
 
     def warn_unknown_color(self, value: str, tag: str, key: str) -> None:
         """颜色既不是主题令牌也不是合法颜色时提醒一次。
