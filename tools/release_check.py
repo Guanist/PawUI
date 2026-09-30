@@ -4,7 +4,12 @@
 由 ``.github/workflows/release.yml`` 调用，本地发版前也可以直接跑：
 
     python tools/release_check.py v0.1.3.2
+    python tools/release_check.py v0.1.3.2 --skip-example
     python tools/release_check.py            # 不传 tag 就只校验版本 + CHANGELOG
+
+``--skip-example`` 给「没装 PySide6 的环境」用：``pawui check`` 要走
+``pawui.widgets`` 从而 import PySide6，而 publish job 只装 build/twine。
+示例校验由 release workflow 的 test job 负责（那边依赖齐全）。
 """
 
 from __future__ import annotations
@@ -43,7 +48,10 @@ def changelog_section(version: str) -> str:
 
 
 def main(argv: list[str]) -> int:
-    tag = argv[1] if len(argv) > 1 else ""
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    flags = {a for a in argv[1:] if a.startswith("--")}
+    skip_example = "--skip-example" in flags
+    tag = args[0] if args else ""
     problems: list[str] = []
 
     version = read_version()
@@ -71,7 +79,9 @@ def main(argv: list[str]) -> int:
 
     # 示例必须还能过 check，否则发出去的包带一个坏示例
     showcase = ROOT / "examples" / "showcase.paw"
-    if showcase.is_file():
+    if skip_example:
+        print("examples/showcase.paw : (--skip-example，跳过)")
+    elif showcase.is_file():
         sys.path.insert(0, str(ROOT))
         from pawui.cli import check
 
