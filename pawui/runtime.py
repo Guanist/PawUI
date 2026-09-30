@@ -1027,11 +1027,15 @@ class Runtime:
         if not self._event_handlers or not isinstance(obj, QWidget):
             return False
         try:
+            # 控件可能正在被销毁（Qt 对象没了、Python 包装还在），
+            # 不先判一次就是碰野指针
+            if not isValid(obj):
+                return False
             kind = event.type()
             if kind not in _WATCHED_EVENTS:
                 return False
             if kind == QEvent.Type.MouseButtonRelease:
-                if isinstance(obj, QWidget) and obj.isEnabled():
+                if isValid(obj) and obj.isEnabled():
                     # 真正被点的可能是更深的子控件，跟浏览器一样按最深的来派发，
                     # 再顺着父链往上涨（事件冒泡）
                     deep = obj

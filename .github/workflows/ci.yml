@@ -43,7 +43,11 @@ jobs:
       - name: Types (mypy)
         run: python -m mypy pawui
       - name: Tests (offscreen, no display)
-        run: python -m pytest -q
+        # Qt 的 offscreen 后端偶发在 pytest-qt 处理事件时进程级段错误
+        # （崩溃栈里没有 Python 帧，Windows/macOS/Linux 都撞到过，无法 try/except）。
+        # 失败重试一次：真坏了两次都会挂，偶发的话重试就过。
+        run: |
+          python -m pytest -q || (echo "::warning::第一次 pytest 挂了，重试一次" && python -m pytest -q)
         env:
           QT_QPA_PLATFORM: offscreen
       # 回归防线：stdout 被管道捕获时不能再抛 UnicodeEncodeError
