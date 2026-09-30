@@ -9,10 +9,33 @@ pawui watch <file.paw>     # Hot reload: rebuild on file change
 pawui check <file.paw>     # Syntax check only (no rendering)
 pawui schema               # Print component JSON Schema
 pawui render <file.paw>    # Offscreen render self-check
-pawui help                 # List built-in doc topics
-pawui help <topic>         # Print a bundled doc (e.g. pawui help components)
+pawui inspect <file.paw>   # Widget tree + matched CSS + state subscriptions
+pawui help                 # List doc topics (fetched online)
+pawui help <topic>         # Print one doc (e.g. pawui help components)
+pawui help --refresh       # Force-refresh the online docs
 pawui --version            # Print version
 pawui --help               # Show help
+```
+
+## Docs come from the site
+
+`pawui help` reads the **live documentation** — the same `static/data.js` the
+website renders — so a doc fix reaches you without waiting for a release:
+
+1. fresh cache (`%LOCALAPPDATA%\pawui\docs.json`, 6h TTL) → used as-is;
+2. otherwise fetch `https://pawui.pages.dev/static/data.js` and cache it;
+3. no network? fall back to the `docs/` bundled with the package.
+
+Each run ends with the source it used, so you always know what you read.
+
+| Environment variable | Effect |
+| --- | --- |
+| `PAWUI_DOCS_OFFLINE=1` | Never touch the network; cache + bundled docs only |
+| `PAWUI_DOCS_LANG=zh\|en` | Force the doc language (default: from the system locale) |
+
+```bash
+PAWUI_DOCS_LANG=en pawui help style-css   # read the English page
+pawui help --offline theming              # no network at all
 ```
 
 ## Hot Reload

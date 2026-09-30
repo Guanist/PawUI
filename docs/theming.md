@@ -3,8 +3,8 @@
 ## Built-in Themes
 
 ```html
-<Window theme="dark">   <!-- Default -->
-<Window theme="light">
+<Window theme="light">   <!-- Default: light + blue accent -->
+<Window theme="dark">
 ```
 
 ## Customizing Colors

@@ -32,6 +32,84 @@ Top level: `<Window>` (exactly one), `<Theme>`, `<Component>`, `<script>`, `<!--
 | `Web` | `src` (URL) or `html` (inline HTML, `{$state}` supported) — requires PySide6-Addons |
 | `If` | `condition` — `{$flag}` or `true/false/yes/on/1`; renders children when truthy |
 | `For` | `each` (loop var, default `item`) + `in="{$list}"`; supports nested loops, `{$item.name}`, `{$row[0]}` |
+| `Grid` | `columns` (default 2) `gap` — row-major auto placement |
+| `RadioGroup` / `Radio` | group: `value on_change bind`; radio: `value checked`, label between tags |
+| `Segmented` | `items value on_change bind radius` — iOS-style segmented control |
+| `NumberInput` | `min max step value on_change bind` |
+| `DatePicker` / `TimePicker` | `value format on_change bind` — ISO date / `HH:mm` |
+| `FilePicker` | `label mode="open\|save\|dir" filter on_pick` — handler(path) |
+| `Badge` | `text bg fg size radius` — status pill |
+| `Avatar` | `src initials size bg fg` — round, image or initials |
+| `Skeleton` / `Spinner` | `width height radius animate` / `size color thickness` |
+| `Link` | `href external on_click` |
+| `CodeBlock` | `language height numbers` — monospace, read-only |
+| `Markdown` | text between tags; markdown → rich text |
+| `Panel` / `Accordion` | panel: `title open on_toggle`; accordion: `multiple` |
+| `SplitPane` | `axis="x\|y" ratio handle` — two children, draggable |
+| `List` | `items value on_select bind height` |
+| `Table` | `columns rows sortable striped index height on_select` — handler([cells]) |
+| `VirtualList` | `rows row_height height each gap` — only visible rows are built; use for 1k+ rows |
+| `Canvas` | `width height on_draw on_press` — handler(painter), see painter API below |
+| `Shortcut` | `keys="Ctrl+S" on_press` |
+
+Shared props on every element: `class` / `id` (CSS hooks), `width height min_width
+min_height max_width max_height` `margin` `border` `border_width` `border_color`,
+`grow` / `shrink` (containers: also `wrap` / `justify` / `align` / `gap`),
+`aria_label` `aria_description` `tabindex`.
+
+**Style block**
+
+```html
+<Style>
+  :root { --brand: #ff7a1a; }
+  Card        { radius: 14; padding: 16; bg: var(--surface); }
+  .card.title { font-size: 18px; }
+  #save:hover { bg: var(--brand); }
+  .card Text  { color: var(--subtext); }
+</Style>
+```
+
+Selectors: `Tag` / `.class` / `.class.other` / `#id` / `[attr=value]` / descendant /
+`>` / comma groups / `:hover` `:pressed` `:disabled`. Properties: standard CSS names
+plus `bg` / `fg` / `radius`; bare numbers on length properties get `px`. `var(--x)`
+and `var(--x, fallback)` resolve at compile time against your `:root` block, the
+theme tokens (`--bg --fg --accent --surface --border --danger --radius`) and any
+`<Color name="…"/>`. Text props that Qt lacks are applied at runtime:
+`wrap` `ellipsis` `align` `selectable` `line-height`.
+
+**Canvas painter** (`on_draw="paint"`)
+
+```python
+def paint(p):
+    w, h = p.size()
+    p.clear("#ffffff")
+    p.rect(10, 10, w - 20, h - 20, radius=10, fill="#f5f5f7", stroke="#d2d2d7")
+    p.line(0, 0, 50, 50, color="#0071e3", width=2)
+    p.circle(40, 40, 12, fill="#ff7a1a")
+    p.arc(40, 40, 20, 0, 270, color="#333")
+    p.polygon([(0, 0), (10, 0), (5, 10)], fill="#000")
+    p.text(12, 12, "Hi", size=13, color="#111", bold=True)
+    p.image("logo.png", 0, 0, 32, 32)
+```
+
+**Scripting the page** (inside `<script>`, after `ready(fn)`)
+
+```python
+def wire():
+    app.query("#title").text = "hi"          # also .value .add_class() .css() .attr()
+    app.query_all(".card")
+    app.on(".card", "click", lambda e: print(e.target.tag))
+    app.append("#list", "<Text>new</Text>")
+    app.remove("#old")
+    app.inject_css("Button { radius: 6px; }")
+    app.toast("Saved", "success")            # info/success/warning/error
+ready(wire)
+```
+
+Events: `click change input enter hover leave focus blur`; handlers receive an
+`Event` with `type target value key checked`. Events bubble to ancestors.
+`app.validate()` / `app.submit()` run `<Form>` field checks and paint the errors
+on the fields.
 
 Async: `app.invoke_async(handler, done=fn)` runs `handler` in a background thread;
 `done(result, error)` returns on the main thread — update `state` only inside `done`.

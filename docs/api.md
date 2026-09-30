@@ -114,11 +114,80 @@ Available via `pawui.components.BUILTINS`:
 - `Checkbox`
 - `Divider`
 - `Spacer`
+- `Slider`
+- `Progress`
+- `Select`
+- `Dialog`
+- `Menu`
+- `Form`
+- `Tabs`
+- `Image`
+- `Tooltip`
+- `TextArea`
+- `Scroll`
+- `Web`
+- `Grid`
+- `Radio`
+- `RadioGroup`
+- `Segmented`
+- `NumberInput`
+- `DatePicker`
+- `TimePicker`
+- `FilePicker`
+- `Badge`
+- `Avatar`
+- `Skeleton`
+- `Spinner`
+- `Link`
+- `CodeBlock`
+- `Markdown`
+- `Panel`
+- `Accordion`
+- `SplitPane`
+- `List`
+- `Table`
+- `VirtualList`
+- `Canvas`
+- `Shortcut`
+
+共 44 个内置组件，另有 `<If>` / `<For>` 两个逻辑容器。
+
+## DOM API（`Runtime` / `<script>` 里的 `app`）
+
+```python
+app.query(selector)                  # -> Element | None
+app.query_all(selector)              # -> list[Element]
+app.on(selector, kind, handler)      # 按选择器绑事件，返回绑定数量
+app.append(target, markup, prepend=False)   # -> list[Element]
+app.remove(target)                   # -> bool
+app.inject_css(text)                 # 全局注入，追加在 <Style> 之后
+app.css(selector, declarations)
+app.toast(text, kind="info", duration=2400)
+app.ready(fn)                        # 控件树建好后执行
+app.validate()                       # 校验并把错误画到字段上 -> bool
+app.submit()                         # 校验 + 调 <Form on_submit>
+app.inspect_tree()                   # -> str，pawui inspect 用的就是它
+```
+
+`Element` 句柄（`app.query(...)` 的返回值）：
+
+```python
+el.text / el.value / el.id / el.tag / el.classes
+el.attr(name, value=None)
+el.add_class(*names) / el.remove_class(*names) / el.toggle_class(name) / el.has_class(name)
+el.css(declarations) / el.on(kind, handler)
+el.append(markup) / el.prepend(markup) / el.clear() / el.remove()
+el.children() / el.closest(selector) / el.query(selector) / el.query_all(selector)
+```
+
+事件类型：`click` `change` `input` `enter` `hover` `leave` `focus` `blur`。
+回调收到 `Event`，字段为 `type` / `target` / `value` / `key` / `checked`。
 
 ## Errors
 
 ```python
 class PyxError(Exception)
+class LexerError(PyxError)
 class ParseError(PyxError)
 class ComponentError(PyxError)
 class RenderError(PyxError)
@@ -132,7 +201,7 @@ class Element
 class ScriptBlock
 class Program
 class ComponentDef
-class Symbol
+class Symbol          # 运行时解析用；解析器不产生此节点
 class Position
 ```
 
@@ -140,8 +209,9 @@ class Position
 
 ```python
 # pawui/__init__.py
-__all__ = ["run", "main"]
-__version__ = "0.0.3"
+__all__ = ["run", "main", "Runtime", "State", "Theme",
+           "PawUIError", "PyxError", "ParseError", "RenderError", "ScriptError"]
+__version__ = "0.1.3"
 
 # pawui.cli
 run(path, context=None, theme="dark") -> None
