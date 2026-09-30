@@ -139,3 +139,19 @@ pawui --version
 `pawui help` 的正文来自官网（`pawui.pages.dev/static/data.js`，6 小时缓存，
 离线自动回落随包 `docs/`），所以文档更新不用等发版。
 `PAWUI_DOCS_OFFLINE=1` 强制离线，`PAWUI_DOCS_LANG=zh|en` 指定语言。
+
+
+## 发版
+
+凭据放在仓库外（仓库是公开的）：`~/.pypirc` 存 PyPI 令牌，
+`~/.pawui/secrets.env` 存 `GITHUB_TOKEN` / `SITE_REPO`。
+
+```bash
+python tools/release.py build     # 清 dist + build + twine check
+python tools/release.py upload    # twine upload（读 ~/.pypirc，已存在的版本自动跳过）
+python tools/release.py publish   # 打 tag + push + 建 GitHub Release
+python tools/release.py site      # docs 同步到站点仓库 + 重建 data.js + 推送
+python tools/release.py all       # build → upload → publish
+```
+
+Release 正文自动从 `CHANGELOG.md` 里对应版本那一段抠出来。
