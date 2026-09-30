@@ -13,6 +13,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
+        exclude:
+          # PySide6 6.11 的 macOS cp312 轮子在 offscreen 平台下会在
+          # QApplication::setStyleSheet 里直接段错误（Qt 内部崩，调用栈全在 Qt 里）。
+          # 同代码在 macOS 3.10/3.11、Linux/Windows 3.12 都正常 —— 属于轮子问题，
+          # 等 PySide6 更新后把这条 exclude 删掉即可。3.12 仍由另外两个平台覆盖。
+          - os: macos-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

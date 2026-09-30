@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.3.1] - 2026-09-30
+
+### 修复
+- **`<TextArea bind="…" value="{$…}">` 回声死循环（崩溃级）**：`QPlainTextEdit`
+  的 `setPlainText` 在 Qt 6.11 下**即使内容没变也会发 `textChanged`**，
+  于是 state → 控件 → textChanged → 推回 state → 监听器又写回控件……一直互相触发，
+  最后 `RecursionError`。因为异常抛在 Qt 事件循环内部，本地看起来只是「界面卡一下」，
+  换成 CI 的 pytest-qt 才被判定为失败。现在 state → 控件的写入统一压住回声
+  （`_suppress` 守卫），`<Select>` 的 `setCurrentText` 同处理。
+- **`QComboBox::down-arrow` 不再用 `image: none`**：那会让 Qt 去解析空 pixmap，
+  改成 0 尺寸 + 无边框（箭头本来就是自绘的 chevron）。
+- **应用级样式表的守卫**：`QApplication` 已销毁时跳过 `setStyleSheet`，不再碰野指针。
+- CI 补 ubuntu 缺的系统库（`libegl1` 等，PySide6 缺了会 `ImportError: libEGL.so.1`）。
+
+### 已知问题
+- PySide6 6.11 的 **macOS + Python 3.12** 轮子，在 `QT_QPA_PLATFORM=offscreen` 下
+  会在 `QApplication::setStyleSheet` 里段错误（崩溃帧全在 Qt 内部）。同代码在
+  macOS 3.10 / 3.11 与 Linux / Windows 3.12 均正常，所以 CI 先排除这个组合，
+  等 PySide6 更新后再加回来。图形界面的 cocoa 平台不受影响。
+
 ## [0.1.3] - 2026-09-30
 
 ### 新增 —— 样式系统（在 .paw 里直接写 CSS3）
