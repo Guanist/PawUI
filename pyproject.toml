@@ -14,7 +14,6 @@ dependencies = ["PySide6>=6.5"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -51,6 +50,7 @@ pawui = ["py.typed"]
 
 [tool.setuptools.data-files]
 "share/pawui/docs" = ["docs/*.md"]
+"share/pawui/docs/zh" = ["docs/zh/*.md"]
 
 [tool.ruff]
 line-length = 100
