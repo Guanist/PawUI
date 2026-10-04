@@ -203,6 +203,7 @@ SCHEMA = {
             "props": {
                 "items": {"type": "array", "description": "[a, b, c] / a, b, c / {$state} reference"},
                 "value": {"type": "string", "default": ""},
+                "placeholder": {"type": "string", "default": "", "description": "Shown when nothing is selected"},
                 "on_change": {"type": "string", "description": "Handler(value)"},
                 "bind": {"type": "string", "description": "Two-way bind to state key"},
             },

@@ -990,7 +990,15 @@ class Select(Component):
         items = resolve_raw(self.props.get("items", []), self.scope, self.runtime)
         self._set_items(combo, items)
         value = self.props.get("value", "")
-        combo.setCurrentText(str(resolve_prop_value(value, self.scope, self.runtime)))
+        current = str(resolve_prop_value(value, self.scope, self.runtime))
+        # placeholder：没有初值 / 初值不在列表里时，显示一段灰色提示并保持「未选中」
+        # （索引 -1）。一旦用户选了项，它自然消失。
+        placeholder = self.opt_str("placeholder", "")
+        if placeholder:
+            combo.setPlaceholderText(placeholder)
+        combo.setCurrentText(current)
+        if placeholder and (not current or current not in [combo.itemText(i) for i in range(combo.count())]):
+            combo.setCurrentIndex(-1)
         if isinstance(value, str) and is_template(value):
             self.bind_state(value, self._set_current)
         handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
@@ -1194,16 +1202,21 @@ class Tabs(Component):
             page_lay = QVBoxLayout(page)
             page_lay.setContentsMargins(12, 12, 12, 12)
             label = str(resolve_prop_value(child.props.get("label", "Tab"), self.scope, self.runtime))
+            packed = []
             if child.tag == "Tab":
                 for inner in child.children:
                     inner_comp = self.runtime._build_element(inner, self, self.scope)
                     if inner_comp.widget is not None:
-                        page_lay.addWidget(inner_comp.widget)
+                        page_lay.addWidget(inner_comp.widget, inner_comp.stretch())
+                        packed.append(inner_comp)
             else:
                 child_comp = self.runtime._build_element(child, self, self.scope)
                 if child_comp.widget is not None:
-                    page_lay.addWidget(child_comp.widget)
-            page_lay.addStretch(1)
+                    page_lay.addWidget(child_comp.widget, child_comp.stretch())
+                    packed.append(child_comp)
+            # 只有「页签内没有子元素要伸展」时才补尾簧，否则会和它抢空间（撑不满）。
+            if not any(c.stretch() for c in packed):
+                page_lay.addStretch(1)
             self._tabs.addTab(page, label)
         return tabs
 
@@ -1285,7 +1298,13 @@ class TextArea(Component):
             f" QPlainTextEdit:focus {{ border:2px solid {self.theme.accent}; }}"
         )
         if handler:
-            edit.textChanged.connect(lambda: self.runtime.invoke(handler, edit.toPlainText()))
+            # _suppress 守卫：state 回填触发 setPlainText -> textChanged -> 又回调写回 state
+            # 会成环（QPlainTextEdit 内容不变也发 textChanged）。回填期间必须压住。
+            edit.textChanged.connect(
+                lambda: None
+                if getattr(self, "_suppress", False)
+                else self.runtime.invoke(handler, edit.toPlainText())
+            )
         bind = self._bind_key()
         if bind:
             self._suppress = False

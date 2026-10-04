@@ -900,8 +900,12 @@ class Table(Component):
     def _style_table(self, table: QTableWidget) -> None:
         theme = self.theme
         radius = self.opt_int("radius", 10)
+        # 斑马纹行必须显式给色：Qt 默认落回 QPalette::AlternateBase（平台浅色 #f7f7f7），
+        # 在深色主题下会变成「白底白字」。用 surface/background 之间的插值。
+        alternate = _blend(theme.surface, theme.background, 0.5)
         table.setStyleSheet(
             f"QTableWidget {{ background-color:{theme.surface}; color:{theme.text};"
+            f" alternate-background-color:{alternate};"
             f" gridline-color:{theme.border}; border:1px solid {theme.border};"
             f" border-radius:{radius}px; font-size:{self.opt_size()}px; outline:none; }}"
             f"QTableWidget::item {{ padding:6px 8px; }}"

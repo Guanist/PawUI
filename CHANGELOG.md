@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.1.3.3] - 2026-10-04
+
+### 修复
+- **`<TextArea bind value on_change>` 写回 state 时成环、界面冻结（崩溃级）**：
+  `components.py` 里 `on_change` 的回调没检查 `_suppress`，而 `state.set()` 又没有
+  相等判断。于是「state 回填控件 → `QPlainTextEdit.setPlainText` → `textChanged`
+  → 回调写回同一个值 → 再回填」停不下来。`setPlainText` 在内容没变时**也会**发
+  `textChanged`（它总是先 clear 再 insert），所以环一定会转起来，最终反复抛
+  `RecursionError` 并在事件循环里重入，用户侧只看到「点了没反应」。
+  现在 `on_change` 回调加上与 `_push_state` 一致的 `_suppress` 守卫。
+  注：只有 `TextArea` 有这个环 —— `Select` / `Slider` / `NumberInput` /
+  `DatePicker` / `TimePicker` / `Input` 的 setter 是幂等的，值相同时不发信号。
+- **`<Table striped>` 在深色主题下白底白字（看不清）**：`_style_table()` 没设
+  `alternate-background-color`，Qt 于是落回 `QPalette::AlternateBase` —— 那是平台
+  默认的浅色 `#f7f7f7`，配上浅色文字（`#f8f8f2`）对比度只有 **1.005:1**，等于看不见。
+  `striped` 默认就是 `true`，所以**所有**深色主题下的 `<Table>` 都会中招。
+  现在用 `_blend(surface, background, 0.5)` 显式给出交替色（深色主题下 `#232432`，
+  对比度提到 ~14:1）。
+- **`<Tabs>` 丢弃页签内子元素的 `stretch()`，`expand` / `grow` 静默失效**：
+  `Tabs.build()` 直接 `addWidget(widget)`，没带上 `inner_comp.stretch()`，再加上无条件
+  `addStretch(1)`，页签里的内容永远只按 sizeHint 高显示。`examples/showcase.paw` 里
+  就有 4 个页签的 `grow="1"` 被静默吃掉。现在透传 `stretch()`，且只在「没有子元素
+  要伸展」时才补尾簧。
+
+### 新增
+- **`<Select placeholder="…">`**：这台属性此前**只写在了文档里、实现里没有**
+  （0.1.3.3 补上）。没有任何选项被选中时显示灰色提示文字并保持「未选中」
+  （`currentIndex = -1`）；一旦 `value` 命中列表项就正常显示该项，不写
+  `placeholder` 时行为完全不变。
+
+### 文档
+- 新增 `CONTRIBUTING.md`：环境、提交前检查、代码地图、API 硬规矩、常见坑、
+  文档/发版流程，以及「提 issue 前先自证」的要求。
+- 新增 `docs/component-dialog-menu.md` + `docs/zh/component-dialog-menu.md`：
+  `Dialog` / `Menu` / `Shortcut` / `Select` 四个组件此前在随包文档里完全没有说明，
+  现在补齐了属性表与用法（含 `<Dialog>` 的 `cancel` / `accept` 是**按钮文案**、
+  `<Menu>` 的 `items` 同时支持字面量与 `{$list}`、`<Shortcut>` 不占视觉位置等）。
+
+### 测试
+- 新增 `tests/test_regressions_0133.py`（10 条），钉住上面三条的触发路径：
+  `on_change` 写回 state 不成环、回填期间不触发 `on_change`、深色表格有
+  `alternate-background-color`、页签内 `expand` 能撑满、无 stretch 时尾簧仍在、
+  `<Select placeholder>` 的四种取值场景。
+
 ## [0.1.3.2] - 2026-09-30
 
 ### 修复
