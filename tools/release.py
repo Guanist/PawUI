@@ -58,17 +58,26 @@ def load_secrets() -> dict[str, str]:
     return out
 
 
+def redact(text: str) -> str:
+    """把命令行里的凭据换成 ***，免得 token 被打印进终端/日志/会话记录。
+
+    匹配 ``scheme://user:secret@host`` 里的 ``user:secret`` 段（含
+    ``x-access-token:<token>@`` 这种形式），整体替换成 ``***:***``。
+    """
+    return re.sub(r"(://)[^/@\s]+:[^/@\s]+@", r"\1***:***@", text)
+
+
 def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
-    print(f"$ {' '.join(cmd)}")
+    print(f"$ {redact(' '.join(cmd))}")
     result = subprocess.run(cmd, cwd=str(cwd or ROOT), text=True,
                             capture_output=True, encoding="utf-8", errors="replace")
     tail = (result.stdout or "").strip().splitlines()
     for line in tail[-6:]:
-        print("  " + line)
+        print("  " + redact(line))
     if result.returncode != 0 and check:
         err = (result.stderr or "").strip().splitlines()
         for line in err[-8:]:
-            print("  ! " + line)
+            print("  ! " + redact(line))
         raise SystemExit(f"命令失败（{result.returncode}）: {' '.join(cmd)}")
     return result
 
@@ -106,6 +115,7 @@ def cmd_upload() -> None:
 def git_push(secrets: dict[str, str], *refs: str) -> None:
     token = secrets.get("GITHUB_TOKEN", "")
     if token:
+        # URL 里带 token，但 run() 会把它脱敏后再打印
         url = f"https://x-access-token:{token}@github.com/LK-BLOG/PawUI.git"
         run(["git", "push", url, *refs])
     else:
