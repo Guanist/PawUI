@@ -526,6 +526,11 @@ class Component:
 class Window(Component):
     is_container = True
     owns_size = True
+    # 根节点不补尾簧。Component.finish_children() 默认会补一个 stretch=1 的弹簧把内容
+    # 顶到上方，但窗口是根，子元素（常见写法是一个没写 expand 的 <Column>）在根布局里
+    # stretch 是 0，竞争不过弹簧，于是被压成 sizeHint 高、窗口下半屏全空。
+    # 需要把内容顶到上方时，交给子元素自己的 justify / align 控制。
+    add_trailing_stretch = False
 
     def build(self) -> QWidget:
         root = QWidget()
