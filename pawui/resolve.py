@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from .nodes import Symbol
+from .theme import COLOR_FIELDS
 
 # 匹配 {$a.b[0]} / {a.b[0]} / $a.b[0] 三种插值形式，支持属性/索引路径。
 runtime_refs_re = re.compile(
@@ -100,17 +101,40 @@ def resolve_symbol(sym: Symbol, scope: dict, runtime: Any) -> Any:
 
 
 def resolve_prop_value(value: Any, scope: dict, runtime: Any) -> Any:
+    """解析属性值：Symbol 走名字查找，模板走插值，**普通字符串原样返回**。
+
+    裸字符串以前也会被拿去和主题字段比名字，于是任何撞名的字面量都会被悄悄换掉
+    （``<Badge text="text"/>`` 显示 ``#1d1d1f``、``text="radius"`` 显示 ``24``、
+    ``text="dark"`` 显示 ``<bound method Theme.dark of ...>`` —— ``hasattr`` 连方法
+    名和数字字段都算命中）。
+
+    「令牌名即颜色」只有颜色属性需要，那条路单独放在 :func:`resolve_color`，
+    由 ``Component.opt_color`` 调用。
+    """
+    if isinstance(value, Symbol):
+        return resolve_symbol(value, scope, runtime)
+    if is_template(value):
+        return resolve_template(value, scope, runtime)
+    return value
+
+
+def resolve_color(value: Any, scope: dict, runtime: Any) -> Any:
+    """解析颜色属性：裸字符串可以是主题令牌名，也可以是 ``<Color name=...>`` 自定义色名。
+
+    只认 ``COLOR_FIELDS`` 与 ``theme.custom``，避免 ``hasattr(theme, name)``
+    把方法名、间距/圆角这类数字字段也当成颜色。
+    """
     if isinstance(value, Symbol):
         return resolve_symbol(value, scope, runtime)
     if is_template(value):
         return resolve_template(value, scope, runtime)
     if isinstance(value, str):
         name = value.strip()
-        if hasattr(runtime.theme, name):
-            return getattr(runtime.theme, name)
         custom = getattr(runtime.theme, "custom", {})
         if name in custom:
             return custom[name]
+        if name in COLOR_FIELDS:
+            return getattr(runtime.theme, name)
     return value
 
 

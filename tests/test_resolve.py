@@ -6,6 +6,7 @@ from pawui.nodes import Symbol
 from pawui.resolve import (
     collect_refs,
     is_template,
+    resolve_color,
     resolve_handler,
     resolve_prop_value,
     resolve_raw,
@@ -98,9 +99,45 @@ class TestResolvePropValue:
         result = resolve_prop_value("plain string", scope, runtime)
         assert result == "plain string"
 
+    def test_plain_string_keeps_theme_names_literal(self, runtime, scope):
+        """裸字符串不再被当成主题令牌。
+
+        旧行为：``resolve_prop_value("accent")`` 返回 ``#0071e3``，于是
+        ``<Badge text="text"/>`` 显示 ``#1d1d1f``、``text="dark"`` 显示
+        ``<bound method Theme.dark of ...>``。主题令牌只对颜色属性生效，
+        见 TestResolveColor。
+        """
+        assert resolve_prop_value("accent", scope, runtime) == "accent"
+        assert resolve_prop_value("text", scope, runtime) == "text"
+        assert resolve_prop_value("radius", scope, runtime) == "radius"
+        assert resolve_prop_value("dark", scope, runtime) == "dark"
+
+
+class TestResolveColor:
+    """颜色属性专用：裸字符串可以是主题令牌名或自定义色名。"""
+
     def test_resolves_theme_color_by_name(self, runtime, scope):
-        result = resolve_prop_value("accent", scope, runtime)
-        assert result == runtime.theme.accent
+        assert resolve_color("accent", scope, runtime) == runtime.theme.accent
+        assert resolve_color("surface", scope, runtime) == runtime.theme.surface
+        assert resolve_color("danger", scope, runtime) == runtime.theme.danger
+
+    def test_resolves_custom_color_by_name(self, runtime, scope):
+        runtime.theme.custom["brand"] = "#22d3ee"
+        assert resolve_color("brand", scope, runtime) == "#22d3ee"
+
+    def test_leaves_hex_untouched(self, runtime, scope):
+        assert resolve_color("#ff0000", scope, runtime) == "#ff0000"
+
+    def test_non_color_theme_fields_are_not_colors(self, runtime, scope):
+        """radius / spacing / 方法名都不是颜色，不能被替换。"""
+        assert resolve_color("radius", scope, runtime) == "radius"
+        assert resolve_color("padding", scope, runtime) == "padding"
+        assert resolve_color("dark", scope, runtime) == "dark"
+        assert resolve_color("qss", scope, runtime) == "qss"
+
+    def test_still_resolves_templates(self, runtime, scope):
+        runtime.state.set("mine", "#123456")
+        assert resolve_color("{$mine}", scope, runtime) == "#123456"
 
 
 class TestResolveTemplate:

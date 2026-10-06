@@ -172,6 +172,31 @@ class TestDisplay:
         assert "<b>粗</b>" in label.text()
         rt.root.close()
 
+    def test_literal_props_are_not_swallowed_by_theme_names(self, qapp):
+        """撞上主题字段名的字面量必须原样显示。
+
+        旧行为：``text="text"`` 显示 ``#f8f8f2``，``text="radius"`` 显示 ``24``，
+        ``text="dark"`` 显示 ``<bound method Theme.dark of ...>``。
+        """
+        rt = _rt("""
+        <Window width="420" height="240">
+          <Column>
+            <Badge id="b1" text="text"/>
+            <Badge id="b2" text="radius"/>
+            <Badge id="b3" text="dark"/>
+            <Text id="t1" color="accent">accent</Text>
+            <Text id="t2" color="subtext">subtext</Text>
+          </Column>
+        </Window>
+        """, qapp)
+        assert rt.root.findChild(QLabel, "b1").text() == "text"
+        assert rt.root.findChild(QLabel, "b2").text() == "radius"
+        assert rt.root.findChild(QLabel, "b3").text() == "dark"
+        # 颜色属性仍然支持令牌名
+        assert rt.theme.accent in rt.root.findChild(QLabel, "t1").styleSheet()
+        assert rt.theme.subtext in rt.root.findChild(QLabel, "t2").styleSheet()
+        rt.root.close()
+
     def test_panel_toggle(self, qapp):
         rt = _rt(ALL_TAGS, qapp)
         from PySide6.QtWidgets import QToolButton
