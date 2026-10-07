@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.1.3.4] - 2026-10-07
+
+### 修复
+- **`app.append()` 按文档写法调用会静默失败（不插元素、不报错）**：
+  实现签名是 `append(markup, target)`，但文档、`pawui schema`、`cli.py` 的提示里
+  一共 5 处都写成 `app.append("#list", "<Text>hi</Text>")`（目标在前）。照文档写的
+  调用会把片段当选择器去查，查不到就 **静默返回空列表** —— 没有异常，用户几乎
+  不可能猜到是参数顺序问题。现在两种顺序都认（靠「哪个参数以 `<` 开头」判断），
+  也可以直接用关键字 `append(markup=…, target=…)`。`prepend` 同理。
+- **`<Window>` 的根级尾簧抢走几乎全部空间**（#8）：`Window` 不是 `Container` 的
+  子类，也没声明 `add_trailing_stretch`，于是根布局被塞了一个 stretch=1 的尾簧；
+  中间那个没写 `expand` 的子容器（`<Window><Column>…</Column></Window>` 是很常见的
+  骨架）竞争不过它，被压成 sizeHint 高 —— 600px 的窗口里只剩 36px，下方整片空白。
+  现在 `Window` 显式 `add_trailing_stretch = False`。
+  顺带修好了一个更隐蔽的问题：改前窗口里 `justify="center"` 的容器因为自身高度被
+  压没，两个定位弹簧高度恒为 0，**垂直居中根本没生效**。
+- **裸字符串被当成主题令牌，撞名的字面量全被悄悄替换**：`resolve_prop_value()` 对
+  *所有* 属性的裸字符串做 `hasattr(theme, name)` 查找，于是 `<Badge text="text"/>`
+  显示成 `#1d1d1f`、`text="radius"` 显示 `24`、`text="dark"` 直接渲染出
+  `<bound method Theme.dark of …>`。现在裸字符串一律保留，「令牌名 = 颜色」只由
+  `resolve_color()` 在颜色属性上处理；`{$accent}` 这类**明示引用**不受影响。
+  （契约变更：`resolve_prop_value("accent")` 从返回颜色值改为返回字面量。）
+
+### 示例
+- 新增 `examples/dom-demo.paw`：一个能直接跑、能看见效果的 DOM 用法示例 ——
+  5 个按钮分别演示 `query`/`text` 读写、`add_class`/`css`、事件冒泡、
+  `append` 插入、`remove` 删除。
+
+### 测试
+- `tests/test_dom.py` 新增 4 条：文档顺序、关键字、`prepend` 文档顺序、
+  文档顺序也要落在尾簧之前。
+- `tests/test_layout.py` 新增 `TestWindowRootLayout`（3 条，来自 PR #9）。
+- `tests/test_resolve.py` / `tests/test_widgets_extra.py` 新增字面量与颜色解析用例（来自 PR #10）。
+
+### 文档
+- `docs/dom.md` / `docs/zh/dom.md`：说明 `append` 两种参数顺序都支持。
+
 ## [0.1.3.3] - 2026-10-04
 
 ### 修复
