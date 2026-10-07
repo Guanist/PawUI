@@ -186,3 +186,43 @@ class TestBoxModel:
         """, qapp)
         assert isinstance(rt.root.findChild(QLabel, "t").parentWidget(), QWidget)
         rt.root.close()
+
+
+class TestWindowRootLayout:
+    """<Window> 的根布局不补尾簧：否则唯一的子容器会被压成 sizeHint 高。"""
+
+    def test_window_layout_has_no_trailing_stretch(self, qapp):
+        rt = _rt("""
+        <Window width="400" height="300">
+          <Column id="host"><Text>a</Text></Column>
+        </Window>
+        """, qapp)
+        layout = rt.root.layout()
+        assert layout.count() == 1, "根布局里不该有额外的弹簧"
+        assert layout.itemAt(0).widget() is rt.root.findChild(QWidget, "host")
+        rt.root.close()
+
+    def test_child_container_fills_window_height(self, qapp):
+        """没写 expand 的子 <Column> 也要铺满根布局。
+
+        旧行为：根级尾簧独占剩余空间，Column 只剩 sizeHint（600px 的窗口里只有 36px）。
+        """
+        rt = _rt("""
+        <Window width="600" height="600">
+          <Column id="host"><Text expand="true">content</Text></Column>
+        </Window>
+        """, qapp)
+        host = rt.root.findChild(QWidget, "host")
+        assert host.height() == rt.root.height(), (host.height(), rt.root.height())
+        rt.root.close()
+
+    def test_expanding_child_fills_window_height(self, qapp):
+        """对照组：写了 expand 的子 <Column> 以前只拿到一半，现在也要铺满。"""
+        rt = _rt("""
+        <Window width="600" height="600">
+          <Column id="host" expand="true"><Text>a</Text></Column>
+        </Window>
+        """, qapp)
+        host = rt.root.findChild(QWidget, "host")
+        assert host.height() == rt.root.height(), (host.height(), rt.root.height())
+        rt.root.close()
