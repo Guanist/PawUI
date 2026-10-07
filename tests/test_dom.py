@@ -122,6 +122,39 @@ class TestStructure:
         assert [e.text for e in rt.query_all(".title")] == ["zero", "hello", "second"]
         rt.root.close()
 
+    def test_append_accepts_documented_argument_order(self, qapp):
+        """文档一直写的是 ``app.append(target, markup)``，必须也能用。
+
+        实现签名是 ``append(markup, target)``，两种顺序都要认 —— 否则照文档写的
+        调用会**静默返回空列表**（不插元素、不报错），用户根本查不出原因。
+        """
+        rt = _rt(qapp=qapp)
+        added = rt.append("#root-col", "<Text class='title'>third</Text>")
+        assert len(added) == 1
+        assert [e.text for e in rt.query_all(".title")] == ["hello", "second", "third"]
+        rt.root.close()
+
+    def test_append_accepts_keyword_arguments(self, qapp):
+        rt = _rt(qapp=qapp)
+        added = rt.append(markup="<Text class='title'>third</Text>", target="#root-col")
+        assert len(added) == 1
+        assert [e.text for e in rt.query_all(".title")] == ["hello", "second", "third"]
+        rt.root.close()
+
+    def test_prepend_accepts_documented_argument_order(self, qapp):
+        rt = _rt(qapp=qapp)
+        rt.append("#root-col", "<Text class='title'>zero</Text>", prepend=True)
+        assert [e.text for e in rt.query_all(".title")] == ["zero", "hello", "second"]
+        rt.root.close()
+
+    def test_append_documented_order_lands_before_trailing_stretch(self, qapp):
+        """文档顺序也要插在尾簧之前（和实现顺序行为一致）。"""
+        rt = _rt(qapp=qapp)
+        rt.append("#root-col", "<Button id='extra'>x</Button>")
+        children = [c.id for c in rt.query("#root-col").children()]
+        assert children[-1] == "extra", children
+        rt.root.close()
+
     def test_remove_element(self, qapp):
         rt = _rt(qapp=qapp)
         assert rt.remove("#title") is True

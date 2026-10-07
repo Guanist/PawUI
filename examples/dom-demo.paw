@@ -1,0 +1,78 @@
+<Window title="DOM 演示" width="720" height="620" theme="dark">
+  <Column padding="20" spacing="14">
+
+    <Text size="20" bold="true">DOM API 实测演示</Text>
+    <Text color="subtext" size="12">左边是「文档写法」，右边是「实际能跑」—— 点按钮看效果</Text>
+    <Divider/>
+
+    <!-- 1. query 读写 -->
+    <Row spacing="10" align="center">
+      <Button on_click="do_query">1. query + text 读写</Button>
+      <Text id="target1" color="accent">原始文字</Text>
+    </Row>
+
+    <!-- 2. class / css -->
+    <Row spacing="10" align="center">
+      <Button on_click="do_style">2. add_class + css</Button>
+      <Text id="target2">样式目标</Text>
+    </Row>
+
+    <!-- 3. 事件冒泡 -->
+    <Column id="card" class="card" padding="10" bg="surface" radius="8">
+      <Text size="12" color="subtext">3. 点这个卡片里的按钮（事件会冒泡到卡片）</Text>
+      <Button id="inner_btn">点我</Button>
+    </Column>
+    <Text id="bubble_log" color="accent">冒泡日志：</Text>
+
+    <!-- 4. append -->
+    <Text size="12" color="subtext">4. 往下面这个容器里插元素</Text>
+    <Column id="list" bg="surface" padding="8" radius="8" spacing="4">
+      <Text>（初始内容）</Text>
+    </Column>
+    <Button on_click="do_append">4. append 插入</Button>
+
+    <!-- 5. remove -->
+    <Button on_click="do_remove">5. remove 删掉上面第一个插入的元素</Button>
+
+  </Column>
+</Window>
+
+<script>
+hits = 0
+
+def wire():
+    # 事件冒泡：绑在卡片上，点卡片里的按钮也会触发
+    app.on("#card", "click", on_card_click)
+
+def on_card_click(e):
+    global hits
+    hits = hits + 1
+    el = app.query("#bubble_log")
+    if el:
+        el.text = "冒泡日志：卡片收到第 " + str(hits) + " 次点击（target=" + str(e.target.tag) + "）"
+
+def do_query():
+    el = app.query("#target1")
+    if el:
+        el.text = "已被 query().text 改写 ✔"
+
+def do_style():
+    el = app.query("#target2")
+    if el:
+        el.css("color: #ffd60a; font-size: 18px;")
+        el.add_class("hl")
+
+def do_append():
+    # 注意：实际签名是 append(markup, target) —— 用 keyword 最不容易踩错
+    n = len(app.query_all("#list Text"))
+    res = app.append(markup="<Text id='added" + str(n) + "'>插入的第 " + str(n + 1) + " 行 ✔</Text>",
+                     target="#list")
+    app.query("#list").css("border: 1px solid #ffd60a;")
+
+def do_remove():
+    els = app.query_all("#list Text")
+    if len(els) > 1:
+        els[-1].remove()
+
+ready(wire)
+</script>

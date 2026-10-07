@@ -66,10 +66,14 @@ def on_save(e):
 
 ```python
 app.append("#list", "<Text class='row'>新行</Text>")
+app.append("<Text class='row'>也可以片段在前</Text>", "#list")
 app.query("#list").prepend("<Text>最前面</Text>")
 app.query("#list").clear()
 app.remove("#old")
 ```
+
+`append` 的两个参数**顺序不限**：`append(目标, 片段)` 和 `append(片段, 目标)` 都认
+（靠「哪个参数以 `<` 开头」自动判断）。想最稳妥就用关键字：`app.append(markup="<Text>x</Text>", target="#list")`。
 
 插入的片段按正常 `.paw` 解析：能用自定义组件、`{$state}` 模板和 `on_click`。追加的位置在尾部弹簧之前，所以视觉顺序和调用顺序一致。
 

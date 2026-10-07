@@ -840,23 +840,57 @@ class Runtime:
             built.append(self._build_element(element, parent, scope))
         return built
 
-    def append(self, markup: str, target: Any = None, prepend: bool = False) -> list[DomElement]:
+    def append(self, markup: Any = None, target: Any = None, prepend: bool = False) -> list[DomElement]:
         """往容器里插一段 .paw 片段（``parent.append(child)``）。
 
         目标可以是 ``"#id"`` / ``".class"`` / 控件对象；不传就插到根上。
+
+        两个位置参数**顺序不限**：``append(markup, target)`` 与
+        ``append(target, markup)`` 都认（文档历来写的是后者）。识别靠「哪个参数
+        像一段 markup」——以 ``<`` 开头即视为片段；两个都像或都不像时按
+        ``(markup, target)`` 处理。用关键字参数 ``append(markup=…, target=…)``
+        最不容易踩错。
         """
+        markup, target = self._split_append_args(markup, target)
+        if markup is None:
+            return []
         host = self.root if target is None else self.el(target)
         widget = host.widget if isinstance(host, DomElement) else host
         if widget is None:
             return []
         comp = self.owner_of(widget)
         added: list[Component] = []
-        for child in self.build_fragment(markup, comp):
+        for child in self.build_fragment(str(markup), comp):
             if comp is not None:
                 comp._children.append(child)
             self._insert_widget(widget, child, len(self._built_components), prepend)
             added.append(child)
         return [DomElement(self, child.widget) for child in added if child.widget is not None]
+
+    @staticmethod
+    def _looks_like_markup(value: Any) -> bool:
+        """一段 .paw 片段长这样：``<Text>hi</Text>``。
+
+        只认字符串开头的 ``<``（可带前导空白）——选择器 ``#id`` / ``.class`` /
+        ``Tag`` / ``QWidget`` 都不会命中，所以判据足够稳。
+        """
+        return isinstance(value, str) and value.lstrip().startswith("<")
+
+    @classmethod
+    def _split_append_args(cls, a: Any, b: Any) -> tuple[Any, Any]:
+        """把 ``append()`` 的一对位置参数归一成 ``(markup, target)``。
+
+        - 只有第一个像 markup  -> 原样 ``(a, b)``
+        - 只有第二个像 markup  -> 交换 ``(b, a)``（兼容文档里的 ``append(target, markup)``）
+        - 两个都像 / 都不像    -> 按 ``(markup, target)``，即不交换
+        """
+        if a is None and b is None:
+            return None, None
+        a_markup = cls._looks_like_markup(a)
+        b_markup = cls._looks_like_markup(b)
+        if b_markup and not a_markup:
+            return b, a
+        return a, b
 
     def remove(self, target: Any) -> bool:
         """从页面上摘掉一个控件（``el.remove()``）。"""

@@ -74,10 +74,15 @@ inside the card.
 
 ```python
 app.append("#list", "<Text class='row'>new item</Text>")
+app.append("<Text class='row'>fragment first also works</Text>", "#list")
 app.query("#list").prepend("<Text>first</Text>")
 app.query("#list").clear()
 app.remove("#old")
 ```
+
+`append` takes its two arguments in **either order**: `append(target, markup)` and
+`append(markup, target)` both work (it detects which one starts with `<`). For
+clarity prefer keywords: `app.append(markup="<Text>x</Text>", target="#list")`.
 
 Appended fragments are parsed like any `.paw` document: they can use components,
 `{$state}` templates and `on_click` handlers. Appends land *before* the trailing
