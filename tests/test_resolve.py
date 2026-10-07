@@ -139,6 +139,28 @@ class TestResolveColor:
         runtime.state.set("mine", "#123456")
         assert resolve_color("{$mine}", scope, runtime) == "#123456"
 
+    def test_template_result_is_treated_as_a_token(self, runtime, scope):
+        """``{$token}`` 解析出 "accent" 时要继续查令牌表，不能停在裸字符串。
+
+        回归：``<Column bg="{$token}"/>``（token="accent"）以前会拿到字符串
+        "accent"，Qt 把它当非法颜色静默丢弃 —— 界面没上色，只留一条
+        "unknown color 'accent'" 的警告。
+        """
+        runtime.state.set("token", "accent")
+        assert resolve_color("{$token}", scope, runtime) == runtime.theme.accent
+
+    def test_template_result_can_be_a_custom_color(self, runtime, scope):
+        runtime.theme.custom["brand"] = "#22d3ee"
+        runtime.state.set("token", "brand")
+        assert resolve_color("{$token}", scope, runtime) == "#22d3ee"
+
+    def test_template_result_is_not_a_token_keeps_value(self, runtime, scope):
+        """解析结果不是令牌（普通颜色/文本）时不能被乱改。"""
+        runtime.state.set("mine", "#123456")
+        assert resolve_color("{$mine}", scope, runtime) == "#123456"
+        runtime.state.set("mine", "hello")
+        assert resolve_color("{$mine}", scope, runtime) == "hello"
+
 
 class TestResolveTemplate:
     def test_simple_interpolation(self, runtime, scope):

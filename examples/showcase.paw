@@ -291,6 +291,16 @@ ready(lambda: app.toast("就绪", "success"))</CodeBlock>
                   <Text size="13" color="subtext">这是一个 Dialog 容器，open 由 {$dialog_open} 控制。</Text>
                   <Input placeholder="备注（可选）" bind="dialog_note"/>
                 </Dialog>
+
+                <Divider/>
+
+                <Text size="13" bold>DoubleInput / DateTimePicker / ColorPicker</Text>
+                <Row spacing="12" align="center">
+                  <DoubleInput min="0" max="1" step="0.01" value="{$ratio}" bind="ratio"/>
+                  <Text size="12" color="subtext">ratio = {$ratio}</Text>
+                </Row>
+                <DateTimePicker value="2026-09-27T13:45"/>
+                <ColorPicker value="{$picked_color}" bind="picked_color" on_change="on_pick_color"/>
               </Column>
             </Row>
           </Column>
@@ -343,6 +353,11 @@ ready(lambda: app.toast("就绪", "success"))</CodeBlock>
                   <Text size="12" color="subtext">◻ {$todo.text}（进行中）</Text>
                 </If>
               </For>
+
+              <Divider/>
+
+              <Text size="13" bold>Tree（树形结构）</Text>
+              <Tree height="180" items="{$tree_nodes}" on_select="on_tree_pick"/>
             </Column>
           </Row>
         </Column>
@@ -396,6 +411,29 @@ ready(lambda: app.toast("就绪", "success"))</CodeBlock>
 
             <Text size="13" bold>状态一览（{$count} / {$progress} / {$list_value}）</Text>
             <Markdown>{$tips}</Markdown>
+
+            <Divider/>
+
+            <Text size="13" bold>Alert（四种 kind，配色取自主题的状态色）</Text>
+            <Alert kind="info" title="信息">info 默认跟随主题主色。</Alert>
+            <Alert kind="success" title="成功">保存成功，配色用 theme.success。</Alert>
+            <Alert kind="warning" title="注意">磁盘剩余空间不足，配色用 theme.warning。</Alert>
+            <Alert kind="error" title="出错">写入失败，配色用 theme.danger。</Alert>
+
+            <Divider/>
+
+            <Text size="13" bold>GroupBox / Dial / LCD</Text>
+            <GroupBox title="高级设置">
+              <Row spacing="14" align="center">
+                <Dial min="0" max="100" value="{$volume}" bind="volume" text="true"/>
+                <Text size="12" color="subtext">volume = {$volume}</Text>
+                <LCD value="{$count}" digits="4"/>
+              </Row>
+            </GroupBox>
+
+            <GroupBox title="带投影的分组（shadow）" shadow="true">
+              <Text size="12" color="subtext">theme.shadow 打开后，容器会挂 QGraphicsDropShadowEffect。</Text>
+            </GroupBox>
           </Column>
         </Scroll>
       </Tab>
@@ -501,9 +539,27 @@ state.notify = bool(state.get("notify", True))
 state.due_date = state.get("due_date", "2026-09-30")
 state.kind = state.get("kind", "开发")
 state.hours = int(state.get("hours", 8) or 8)
-state.ratio = int(state.get("ratio", 50) or 50)
+# state.ratio 见下面新增组件区（float，配合 DoubleInput 的 step=0.01）
 state.dialog_open = bool(state.get("dialog_open", False))
 state.dialog_note = state.get("dialog_note", "")
+
+# 0.1.3.4 新增组件的 state
+state.ratio = float(state.get("ratio", 0.35) or 0.35)
+state.volume = int(state.get("volume", 40) or 40)
+state.picked_color = state.get("picked_color", "#8b5cf6")
+state.tree_nodes = [
+    {"label": "布局", "items": [
+        {"label": "Window"},
+        {"label": "Column / Row"},
+        {"label": "Grid"},
+    ]},
+    {"label": "数据", "items": [
+        {"label": "Table"},
+        {"label": "Tree", "items": [{"label": "子节点 A"}, {"label": "子节点 B"}]},
+        {"label": "VirtualList"},
+    ]},
+    {"label": "绘图", "items": [{"label": "Canvas"}]},
+]
 
 state.table_pick = state.get("table_pick", "点一行看回调：")
 state.list_value = state.get("list_value", "Table")
@@ -613,13 +669,19 @@ def on_font(value):
     state.font_size = int(value)
 
 def on_ratio(value):
-    state.ratio = int(value)
+    state.ratio = round(float(value), 2)
 
 def on_time(value):
     app.toast("时间改为 %s" % value, "info")
 
 def on_file(path):
     app.toast("已载入 %s" % path, "success")
+
+def on_tree_pick(text):
+    app.toast("Tree 选中：%s" % text, "info")
+
+def on_pick_color(value):
+    app.toast("颜色改为 %s" % value, "info")
 
 # ---- 表单：app.submit() 先校验，通过才调 on_submit ----
 def do_submit():

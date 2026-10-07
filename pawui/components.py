@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QLayout,
     QLayoutItem,
     QLineEdit,
+    QMainWindow,
     QMenu,
     QPlainTextEdit,
     QProgressBar,
@@ -221,6 +222,8 @@ def _as_list(value: Any) -> list[Any]:
 def _style_flat_button(btn: QPushButton, theme: Theme, bg: str, fg: str,
                        radius: int, size: int) -> None:
     """扁平按钮样式。Button 与 Dialog 的次级按钮共用，保证按钮跟着主题变色。"""
+    # 按钮底色可能是 accent（不一定是 surface），所以在该底色上再提亮/压暗，
+    # 而不是直接套 theme.hover —— 后者是相对 surface 算的，套到 accent 上会发灰。
     hover = _blend(bg, "#ffffff", 0.14)
     press = _blend(bg, "#000000", 0.16)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -469,6 +472,13 @@ class Component:
         except (TypeError, ValueError):
             return default
 
+    def opt_float(self, key: str, default: float) -> float:
+        v = resolve_prop_value(self.props.get(key, default), self.scope, self.runtime)
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
+
     def opt_size(self, default: int | None = None) -> int:
         d = self.theme.font_size if default is None else default
         return self.opt_int("size", self.opt_int("font_size", d))
@@ -535,15 +545,27 @@ class Window(Component):
     add_trailing_stretch = False
 
     def build(self) -> QWidget:
-        root = QWidget()
-        lay = QVBoxLayout(root)
+        # QMainWindow 而不是裸 QWidget：这样才有 menuBar() / 状态栏的落点，
+        # 内容区仍然是一个普通容器（centralWidget），布局行为不变。
+        root = QMainWindow()
+        body = QWidget()
+        lay = QVBoxLayout(body)
         p = self.opt_int("padding", 0)
         left, top, right, bottom = (p, p, p, p)
         lay.setContentsMargins(left, top, right, bottom)
         lay.setSpacing(self.opt_int("spacing", self.theme.spacing))
+        root.setCentralWidget(body)
+        #: 内容区容器。``self.widget`` 是 QMainWindow（为了 menuBar / 状态栏），
+        #: 真正放子元素的是它；``self.layout`` 就是这个容器的布局。
+        self._body = body
         self.widget = root
         self.layout = lay
         return root
+
+    @property
+    def body(self) -> QWidget:
+        """内容区容器（``QMainWindow.centralWidget()``）。"""
+        return self._body
 
 
 class Container(Component):
@@ -562,7 +584,7 @@ class Container(Component):
         bg = self.opt_color("bg", "")
         if bg:
             box.setStyleSheet(
-                f"QWidget {{ background-color:{bg}; border-radius:{self.opt_int('radius', self.theme.radius)}px; }}"
+                f"QWidget {{ background-color:{bg}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px; }}"
             )
         self.widget = box
         self.layout = lay
@@ -612,7 +634,7 @@ class Grid(Container):
         bg = self.opt_color("bg", "")
         if bg:
             box.setStyleSheet(
-                f"QWidget {{ background-color:{bg}; border-radius:{self.opt_int('radius', self.theme.radius)}px; }}"
+                f"QWidget {{ background-color:{bg}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px; }}"
             )
         self.widget = box
         self.layout = lay
@@ -645,7 +667,7 @@ class Row(Container):
         if bg:
             box.setStyleSheet(
                 f"QWidget {{ background-color:{bg};"
-                f" border-radius:{self.opt_int('radius', self.theme.radius)}px; }}"
+                f" border-radius:{self.opt_int('radius', self.theme.radius_md)}px; }}"
             )
         self._justify = str(self.opt_str("justify", "start")).strip().lower()
         self._cross_align = str(self.opt_str("align", "start")).strip().lower()
@@ -719,7 +741,7 @@ class Button(Component):
         theme = self.theme
         bg = self.opt_color("bg", theme.accent)
         fg = self.opt_color("fg", theme.background)
-        radius = self.opt_int("radius", 17)
+        radius = self.opt_int("radius", self.theme.radius_lg)
         size = self.opt_size()
         btn = QPushButton(self.resolved_content())
         disabled = self.opt_bool("disabled", False)
@@ -745,7 +767,7 @@ class Input(Component):
         family_css = f' font-family:"{family}";' if family else ""
         edit.setStyleSheet(
             f"QLineEdit {{ background-color:{self.theme.surface}; color:{self.theme.text};"
-            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', 10)}px;"
+            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_sm)}px;"
             f" padding:7px 12px; font-size:{self.opt_size()}px;{family_css}"
             f" selection-background-color:{self.theme.accent};"
             f" selection-color:{self.theme.background}; }}"
@@ -890,7 +912,7 @@ class Slider(Component):
         slider.setCursor(Qt.CursorShape.PointingHandCursor)
         accent = self.opt_color("accent", self.theme.accent)
         bg = self.opt_color("bg", self.theme.border)
-        radius = self.opt_int("radius", 3)
+        radius = self.opt_int("radius", self.theme.radius_sm)
         slider.setStyleSheet(
             f"""
             QSlider::groove:horizontal {{ background:{bg}; height:6px; border-radius:{radius}px; }}
@@ -942,7 +964,7 @@ class Progress(Component):
         )
         accent = self.opt_color("accent", self.theme.accent)
         bg = self.opt_color("bg", self.theme.surface)
-        radius = self.opt_int("radius", 5)
+        radius = self.opt_int("radius", self.theme.radius_sm)
         bar.setStyleSheet(
             f"""
             QProgressBar {{ background-color:{bg}; color:{self.opt_color('fg', self.theme.text)};
@@ -1079,7 +1101,7 @@ class Dialog(Container):
         if cancel:
             button = QPushButton(cancel)
             _style_flat_button(button, theme, theme.surface, theme.text,
-                               self.opt_int("button_radius", 10), btn_size)
+                               self.opt_int("button_radius", self.theme.radius_md), btn_size)
             handler = resolve_handler(self.props.get("on_reject"), self.scope, self.runtime)
             if handler:
                 button.clicked.connect(lambda: self.runtime.invoke(handler))
@@ -1087,7 +1109,7 @@ class Dialog(Container):
         if accept:
             button = QPushButton(accept)
             _style_flat_button(button, theme, theme.accent, theme.background,
-                               self.opt_int("button_radius", 10), btn_size)
+                               self.opt_int("button_radius", self.theme.radius_md), btn_size)
             handler = resolve_handler(self.props.get("on_accept"), self.scope, self.runtime)
             if handler:
                 button.clicked.connect(lambda: self.runtime.invoke(handler))
@@ -1095,13 +1117,17 @@ class Dialog(Container):
         lay.addLayout(buttons)
         panel.setStyleSheet(
             f"QWidget {{ background:{self.opt_color('bg', self.theme.surface)};"
-            f" border-radius:{self.opt_int('radius', 12)}px; }}"
+            f" border-radius:{self.opt_int('radius', self.theme.radius_lg)}px; }}"
         )
         # Dialog 自己搭布局、没走 Container.build()，这里补上容器级别的策略字段，
         # 否则 add_child() 只能拿到基类默认值，Dialog 上写的 justify / align 会失效。
         self._justify = str(self.opt_str("justify", "start")).strip().lower()
         self._cross_align = str(self.opt_str("align", "start")).strip().lower()
         panel.setVisible(self.opt_bool("open", True))
+        if self.opt_bool("shadow", bool(getattr(self.theme, "shadow", False))):
+            from .widgets import apply_shadow
+
+            apply_shadow(panel, self.theme, True)
         self.widget = panel
         self.layout = lay
         open_prop = self.props.get("open")
@@ -1115,7 +1141,7 @@ class Menu(Component):
         button = QToolButton()
         button.setText(self.opt_str("label", "Menu"))
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        radius = self.opt_int("radius", 10)
+        radius = self.opt_int("radius", self.theme.radius_md)
         button.setStyleSheet(
             f"""
             QToolButton {{ background-color:{self.opt_color('bg', self.theme.surface)};
@@ -1190,7 +1216,7 @@ class Tabs(Component):
     def build(self) -> QTabWidget:
         tabs = QTabWidget()
         bg = self.opt_color("bg", self.theme.background)
-        radius = self.opt_int("radius", 8)
+        radius = self.opt_int("radius", self.theme.radius_md)
         tabs.setStyleSheet(
             f"""
             QTabBar::tab {{ background:{self.theme.surface}; color:{self.theme.subtext};
@@ -1300,7 +1326,7 @@ class TextArea(Component):
         family_css = f' font-family:"{family}";' if family else ""
         edit.setStyleSheet(
             f"QPlainTextEdit {{ background-color:{self.theme.surface}; color:{self.theme.text};"
-            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', 10)}px;"
+            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_sm)}px;"
             f" padding:8px 12px; font-size:{self.opt_size()}px;{family_css} }}"
             f" QPlainTextEdit:focus {{ border:2px solid {self.theme.accent}; }}"
         )

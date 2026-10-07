@@ -38,6 +38,14 @@ Top level: `<Window>` (exactly one), `<Theme>`, `<Component>`, `<script>`, `<!--
 | `NumberInput` | `min max step value on_change bind` |
 | `DatePicker` / `TimePicker` | `value format on_change bind` — ISO date / `HH:mm` |
 | `FilePicker` | `label mode="open\|save\|dir" filter on_pick` — handler(path) |
+| `Alert` | `kind="info\|success\|warning\|error" title accent radius shadow` — inline message bar |
+| `GroupBox` | `title bg radius shadow` — titled group container |
+| `DoubleInput` | `min max step decimals value on_change bind` |
+| `DateTimePicker` | `value format calendar on_change bind` — ISO datetime |
+| `ColorPicker` | `value size radius title on_change bind` — #rrggbb |
+| `Dial` | `min max step value size notches text on_change bind` |
+| `LCD` | `value digits color radius` |
+| `Tree` | `items headers height indent on_select bind` — nested `[{label, items}]` |
 | `Badge` | `text bg fg size radius` — status pill |
 | `Avatar` | `src initials size bg fg` — round, image or initials |
 | `Skeleton` / `Spinner` | `width height radius animate` / `size color thickness` |

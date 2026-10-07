@@ -31,7 +31,7 @@ pawui.run("app.paw")
 | 文件 | 内容 |
 | --- | --- |
 | `app.paw` | 最小起步：主题、状态绑定、事件、自定义组件 |
-| `examples/showcase.paw` | **全组件总览**：一窗 6 个标签页覆盖全部 44 个内置组件 + `If` / `For` 逻辑标签 |
+| `examples/showcase.paw` | **全组件总览**：一窗 6 个标签页覆盖全部 52 个内置组件 + `If` / `For` 逻辑标签 |
 
 ```bash
 pawui examples/showcase.paw     # 想看某个组件怎么写，直接翻这个文件
@@ -87,15 +87,16 @@ def increment():
 
 ## 内置组件
 
-**44 个组件 + 3 个逻辑标签**（`If` / `For` / `Tab`），`pawui schema` 会有完整属性表。
+**52 个组件 + 3 个逻辑标签**（`If` / `For` / `Tab`），`pawui schema` 会有完整属性表。
 全部组件的用法都能在 `examples/showcase.paw` 里找到实例。
 
 | 分类 | 组件 |
 | --- | --- |
 | 布局 | `Window` `Column` `Row` `Grid` `Scroll` `SplitPane` `Panel` `Accordion` `Spacer` `Divider` |
 | 文本 | `Text` `Markdown` `CodeBlock` `Link` `Badge` `Tooltip` |
-| 交互 | `Button` `Input` `TextArea` `Checkbox` `RadioGroup` `Radio` `Segmented` `Select` `Slider` `NumberInput` `DatePicker` `TimePicker` `FilePicker` `Menu` |
-| 数据 | `Table` `List` `VirtualList` `Progress` `Tabs` `Form` `Dialog` |
+| 交互 | `Button` `Input` `TextArea` `Checkbox` `RadioGroup` `Radio` `Segmented` `Select` `Slider` `NumberInput` `DoubleInput` `DatePicker` `TimePicker` `DateTimePicker` `FilePicker` `ColorPicker` `Dial` `Menu` |
+| 反馈 | `Alert` `Badge` `Tooltip` `Toast`（`app.toast()`） |
+| 数据 | `Table` `Tree` `List` `VirtualList` `Progress` `Tabs` `Form` `Dialog` `GroupBox` `LCD` |
 | 媒体与绘图 | `Image` `Canvas` `Web`（需要 PySide6-Addons） `Avatar` `Skeleton` `Spinner` |
 | 其他 | `Shortcut` `If`（条件） `For`（循环） |
 

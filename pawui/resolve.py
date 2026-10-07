@@ -114,8 +114,20 @@ def resolve_prop_value(value: Any, scope: dict, runtime: Any) -> Any:
     if isinstance(value, Symbol):
         return resolve_symbol(value, scope, runtime)
     if is_template(value):
-        return resolve_template(value, scope, runtime)
+        resolved = resolve_template(value, scope, runtime)
+        return _color_token(resolved, runtime) if isinstance(resolved, str) else resolved
     return value
+
+
+def _color_token(name: str, runtime: Any) -> Any:
+    """把裸字符串当颜色令牌查一次；查不到就原样返回。"""
+    stripped = name.strip()
+    custom = getattr(runtime.theme, "custom", {})
+    if stripped in custom:
+        return custom[stripped]
+    if stripped in COLOR_FIELDS:
+        return getattr(runtime.theme, stripped)
+    return name
 
 
 def resolve_color(value: Any, scope: dict, runtime: Any) -> Any:
@@ -123,18 +135,19 @@ def resolve_color(value: Any, scope: dict, runtime: Any) -> Any:
 
     只认 ``COLOR_FIELDS`` 与 ``theme.custom``，避免 ``hasattr(theme, name)``
     把方法名、间距/圆角这类数字字段也当成颜色。
+
+    ``{$token}`` 这类模板**解析出的字符串也会再过一次令牌查表** —— 否则
+    ``<Column bg="{$token}"/>``（token 取 "accent"）会拿到裸字符串 "accent"，
+    Qt 把它当非法颜色静默丢弃，界面上一片没上色，代码里却毫无提示。
     """
     if isinstance(value, Symbol):
-        return resolve_symbol(value, scope, runtime)
+        resolved = resolve_symbol(value, scope, runtime)
+        return _color_token(resolved, runtime) if isinstance(resolved, str) else resolved
     if is_template(value):
-        return resolve_template(value, scope, runtime)
+        resolved = resolve_template(value, scope, runtime)
+        return _color_token(resolved, runtime) if isinstance(resolved, str) else resolved
     if isinstance(value, str):
-        name = value.strip()
-        custom = getattr(runtime.theme, "custom", {})
-        if name in custom:
-            return custom[name]
-        if name in COLOR_FIELDS:
-            return getattr(runtime.theme, name)
+        return _color_token(value, runtime)
     return value
 
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from PySide6.QtCore import QDate, Qt, QTime, QTimer
+from PySide6.QtCore import QDate, QDateTime, Qt, QTime, QTimer
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -34,10 +34,16 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
+    QColorDialog,
+    QDateTimeEdit,
+    QDial,
+    QDoubleSpinBox,
     QFileDialog,
     QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLCDNumber,
     QListWidget,
     QListWidgetItem,
     QPlainTextEdit,
@@ -49,6 +55,8 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QToolButton,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -176,7 +184,7 @@ class Segmented(Component):
         lay = QHBoxLayout(box)
         lay.setContentsMargins(3, 3, 3, 3)
         lay.setSpacing(3)
-        radius = self.opt_int("radius", 9)
+        radius = self.opt_int("radius", self.theme.radius_sm)
         items = [str(v) for v in _as_item_list(resolve_raw(self.props.get("items", []), self.scope, self.runtime))]
         value = self.opt_str("value", "")
         group = QButtonGroup(box)
@@ -204,7 +212,7 @@ class Segmented(Component):
             self._buttons[label] = button
         box.setStyleSheet(
             f"QWidget[pw-tag=\"Segmented\"] {{ background-color:{theme.background};"
-            f" border-radius:{radius + 3}px; }}"
+            f" border-radius:{radius + self.theme.space_xs}px; }}"
         )
         handler = resolve_handler(self.props.get("on_change"), self.scope, self.runtime)
         bind = self._bind_key()
@@ -234,7 +242,7 @@ class NumberInput(Component):
         box.setValue(self.opt_int("value", self.opt_int("min", 0)))
         box.setStyleSheet(
             f"QSpinBox {{ background-color:{self.theme.surface}; color:{self.theme.text};"
-            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', 10)}px;"
+            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px;"
             f" padding:6px 10px; font-size:{self.opt_size()}px; }}"
             f"QSpinBox:focus {{ border:2px solid {self.theme.accent}; }}"
         )
@@ -266,7 +274,7 @@ class DatePicker(Component):
         edit.setDate(date if date.isValid() else QDate.currentDate())
         edit.setStyleSheet(
             f"QDateEdit {{ background-color:{self.theme.surface}; color:{self.theme.text};"
-            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', 10)}px;"
+            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px;"
             f" padding:6px 10px; font-size:{self.opt_size()}px; }}"
         )
         handler = resolve_handler(self.props.get("on_change"), self.scope, self.runtime)
@@ -296,7 +304,7 @@ class TimePicker(Component):
         edit.setTime(time if time.isValid() else QTime.currentTime())
         edit.setStyleSheet(
             f"QTimeEdit {{ background-color:{self.theme.surface}; color:{self.theme.text};"
-            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', 10)}px;"
+            f" border:1px solid {self.theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px;"
             f" padding:6px 10px; font-size:{self.opt_size()}px; }}"
         )
         handler = resolve_handler(self.props.get("on_change"), self.scope, self.runtime)
@@ -317,7 +325,7 @@ class FilePicker(Component):
         theme = self.theme
         _style_flat_button(
             button, theme, self.opt_color("bg", theme.surface),
-            self.opt_color("fg", theme.text), self.opt_int("radius", 10), self.opt_size(),
+            self.opt_color("fg", theme.text), self.opt_int("radius", self.theme.radius_md), self.opt_size(),
         )
         handler = resolve_handler(self.props.get("on_pick"), self.scope, self.runtime)
         button.clicked.connect(lambda: self._pick(handler))
@@ -356,7 +364,7 @@ class Badge(Component):
         fg = self.opt_color("fg", theme.background)
         label.setStyleSheet(
             f"QLabel {{ background-color:{bg}; color:{fg};"
-            f" border-radius:{self.opt_int('radius', 9)}px;"
+            f" border-radius:{self.opt_int('radius', self.theme.radius_sm)}px;"
             f" padding:2px 9px; font-size:{self.opt_int('size', theme.font_size - 1)}px;"
             f" font-weight:600; }}"
         )
@@ -461,7 +469,7 @@ class Skeleton(Component):
 
     def build(self) -> _SkeletonWidget:
         widget = _SkeletonWidget(
-            self.opt_color("bg", self.theme.border), self.opt_int("radius", 6)
+            self.opt_color("bg", self.theme.border), self.opt_int("radius", self.theme.radius_sm)
         )
         widget.setFixedSize(
             self.opt_int("width", 120),
@@ -551,7 +559,7 @@ class CodeBlock(Component):
             f"QPlainTextEdit {{ background-color:{self.opt_color('bg', self.theme.background)};"
             f" color:{self.opt_color('fg', self.theme.text)};"
             f" border:1px solid {self.theme.border};"
-            f" border-radius:{self.opt_int('radius', 8)}px; padding:10px 12px; }}"
+            f" border-radius:{self.opt_int('radius', self.theme.radius_md)}px; padding:10px 12px; }}"
         )
         self.widget = edit
         return edit
@@ -674,8 +682,8 @@ class Panel(Component):
             f"QToolButton {{ background-color:{self.opt_color('bg', self.theme.surface)};"
             f" color:{self.theme.text}; border:none; padding:10px 12px;"
             f" font-size:{self.opt_size()}px; font-weight:600; text-align:left;"
-            f" border-radius:{self.opt_int('radius', 8)}px; }}"
-            f"QToolButton:hover {{ background-color:{_blend(self.theme.surface, '#000000', 0.06)}; }}"
+            f" border-radius:{self.opt_int('radius', self.theme.radius_md)}px; }}"
+            f"QToolButton:hover {{ background-color:{self.theme.hover}; }}"
         )
         self._header = header
         body = QWidget()
@@ -688,6 +696,7 @@ class Panel(Component):
         outer.addWidget(header)
         outer.addWidget(body)
         header.toggled.connect(self._toggle)
+        apply_shadow(box, self.theme, self.opt_bool("shadow", bool(self.theme.shadow)))
         self.widget = box
         self.layout = lay
         return box
@@ -772,12 +781,12 @@ class List(Component):
         view.setStyleSheet(
             f"QListWidget {{ background-color:{self.opt_color('bg', self.theme.surface)};"
             f" color:{self.theme.text}; border:1px solid {self.theme.border};"
-            f" border-radius:{self.opt_int('radius', 10)}px; padding:4px;"
+            f" border-radius:{self.opt_int('radius', self.theme.radius_md)}px; padding:4px;"
             f" font-size:{self.opt_size()}px; outline:none; }}"
-            f"QListWidget::item {{ padding:7px 10px; border-radius:6px; }}"
+            f"QListWidget::item {{ padding:7px 10px; border-radius:{self.theme.radius_sm}px; }}"
             f"QListWidget::item:selected {{ background-color:{self.theme.accent};"
             f" color:{self.theme.background}; }}"
-            f"QListWidget::item:hover {{ background-color:{_blend(self.theme.surface, '#000000', 0.06)}; }}"
+            f"QListWidget::item:hover {{ background-color:{self.theme.hover}; }}"
         )
         view.setFixedHeight(self.opt_int("height", 180))
         self._set_items(view, resolve_raw(self.props.get("items", []), self.scope, self.runtime))
@@ -899,7 +908,7 @@ class Table(Component):
 
     def _style_table(self, table: QTableWidget) -> None:
         theme = self.theme
-        radius = self.opt_int("radius", 10)
+        radius = self.opt_int("radius", self.theme.radius_md)
         # 斑马纹行必须显式给色：Qt 默认落回 QPalette::AlternateBase（平台浅色 #f7f7f7），
         # 在深色主题下会变成「白底白字」。用 surface/background 之间的插值。
         alternate = _blend(theme.surface, theme.background, 0.5)
@@ -1137,7 +1146,7 @@ class VirtualList(Component):
             f"QScrollArea {{ background:transparent; border:none; }}"
             f"QScrollBar:vertical {{ background:transparent; width:10px; margin:0; }}"
             f"QScrollBar::handle:vertical {{ background:{self.theme.border};"
-            f" border-radius:5px; min-height:30px; }}"
+            f" border-radius:{self.theme.radius_sm}px; min-height:30px; }}"
             f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height:0; }}"
         )
         content = QWidget()
@@ -1245,6 +1254,434 @@ class Shortcut(Component):
         return holder
 
 
+def apply_shadow(widget: QWidget, theme: Any, enabled: bool | None = None) -> None:
+    """给控件加投影（Qt 没有 CSS 的 box-shadow，用 QGraphicsDropShadowEffect 代替）。
+
+    ``enabled`` 为 None 时看 ``theme.shadow``；容器只要不显式关掉就会按主题来。
+    注意：一个控件只能挂一个 graphicsEffect，所以这里不做叠加。
+    """
+    from PySide6.QtWidgets import QGraphicsDropShadowEffect
+
+    if enabled is None:
+        enabled = bool(getattr(theme, "shadow", False))
+    if not enabled:
+        return
+    effect = QGraphicsDropShadowEffect(widget)
+    effect.setBlurRadius(int(getattr(theme, "shadow_blur", 28)))
+    effect.setOffset(0, int(getattr(theme, "shadow_offset_y", 6)))
+    color = str(getattr(theme, "shadow_color", "#00000033"))
+    qc = QColor(color)
+    if not qc.isValid():
+        # #rrggbbaa 形式 QColor 不认，手动拆 alpha
+        try:
+            hexpart = color.lstrip("#")
+            if len(hexpart) == 8:
+                qc = QColor("#" + hexpart[:6])
+                qc.setAlpha(int(hexpart[6:8], 16))
+            else:
+                qc = QColor(0, 0, 0, 51)
+        except ValueError:
+            qc = QColor(0, 0, 0, 51)
+    effect.setColor(qc)
+    widget.setGraphicsEffect(effect)
+
+
+class Alert(Component):
+    """行内提示条：``<Alert kind="warning" title="注意">正文</Alert>``。
+
+    ``kind`` 取 info / success / warning / error，条带颜色和图标跟着变。
+    比 ``app.toast()`` 安静 —— 它留在页面里，不飘走。
+    """
+
+    #: kind -> 图标。颜色取自主题（accent/success/warning/danger），
+    #: 与 app.toast() 的 TOAST_COLORS 一一对应，同一种 kind 到哪儿都是一个色。
+    GLYPHS = {
+        "info": "i",
+        "success": "✓",
+        "warning": "!",
+        "error": "×",
+        "danger": "×",
+    }
+
+    def build(self) -> QWidget:
+        kind = self.opt_str("kind", "info").strip().lower()
+        glyph = self.GLYPHS.get(kind, self.GLYPHS["info"])
+        token = {"success": "success", "warning": "warning",
+                 "error": "danger", "danger": "danger"}.get(kind, "accent")
+        accent = self.opt_color("accent", getattr(self.theme, token, self.theme.accent))
+        theme = self.theme
+        radius = self.opt_int("radius", self.theme.radius_md)
+
+        box = QWidget()
+        box.setProperty("pw-tag", "Alert")
+        lay = QHBoxLayout(box)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(10)
+
+        icon = QLabel(glyph)
+        icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon.setFixedSize(20, 20)
+        icon.setStyleSheet(
+            f"QLabel {{ background:{accent}; color:{theme.background};"
+            f" border-radius:{self.theme.radius_sm}px; font-weight:700; font-size:12px; }}"
+        )
+        lay.addWidget(icon, 0, Qt.AlignmentFlag.AlignTop)
+
+        body = QVBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(2)
+        title = self.opt_str("title", "")
+        if title:
+            head = QLabel(title)
+            head.setStyleSheet(f"color:{theme.text}; font-weight:600; font-size:{self.opt_size(13)}px;")
+            head.setWordWrap(True)
+            body.addWidget(head)
+        text = self.resolved_content().strip() or self.opt_str("text", "")
+        if text:
+            para = QLabel(text)
+            para.setWordWrap(True)
+            para.setStyleSheet(f"color:{theme.subtext}; font-size:{self.opt_size(12)}px;")
+            body.addWidget(para)
+        lay.addLayout(body, 1)
+
+        box.setStyleSheet(
+            f"QWidget[pw-tag=\"Alert\"] {{ background-color:{_blend(theme.surface, accent, 0.12)};"
+            f" border:1px solid {_blend(theme.surface, accent, 0.45)};"
+            f" border-left:3px solid {accent}; border-radius:{radius}px; }}"
+        )
+        box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        apply_shadow(box, theme, self.opt_bool("shadow", bool(theme.shadow)) if "shadow" in self.props else None)
+        self.widget = box
+        return box
+
+
+class GroupBox(Component):
+    """带标题边框的分组容器：``<GroupBox title="高级">…</GroupBox>``。"""
+
+    is_container = True
+    axis = "y"
+
+    def build(self) -> QWidget:
+        box = QGroupBox(self.opt_str("title", ""))
+        lay = QVBoxLayout(box)
+        left, top, right, bottom = self.padding()
+        lay.setContentsMargins(left or 12, (top or 10) + 6, right or 12, bottom or 12)
+        lay.setSpacing(self.opt_int("gap", self.opt_int("spacing", self.theme.spacing)))
+        theme = self.theme
+        box.setStyleSheet(
+            f"QGroupBox {{ background-color:{self.opt_color('bg', theme.surface)};"
+            f" border:1px solid {theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px;"
+            f" margin-top:10px; padding-top:6px;"
+            f" color:{theme.text}; font-size:{self.opt_size()}px; }}"
+            f" QGroupBox::title {{ subcontrol-origin:margin; subcontrol-position:top left;"
+            f" left:12px; padding:0 4px; color:{theme.subtext}; font-weight:600; }}"
+        )
+        self._justify = str(self.opt_str("justify", "start")).strip().lower()
+        self._cross_align = str(self.opt_str("align", "start")).strip().lower()
+        if self.opt_bool("shadow", False):
+            apply_shadow(box, self.theme, True)
+        self.widget = box
+        self.layout = lay
+        return box
+
+    def finish_children(self) -> None:
+        if hasattr(self.layout, "addStretch"):
+            self.layout.addStretch(1)
+
+
+class DoubleInput(Component):
+    """浮点数输入：``<DoubleInput min="0" max="1" step="0.01" value="{$ratio}"/>``。"""
+
+    def build(self) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(self.opt_float("min", 0.0), self.opt_float("max", 100.0))
+        spin.setSingleStep(self.opt_float("step", 0.1))
+        spin.setDecimals(self.opt_int("decimals", 2))
+        value = self.props.get("value", None)
+        if value is not None:
+            try:
+                spin.setValue(float(resolve_prop_value(value, self.scope, self.runtime)))
+            except (TypeError, ValueError):
+                pass
+        spin.setReadOnly(self.opt_bool("readonly", False))
+        _style_spinbox(spin, self.theme, self.opt_size(), self.opt_int("radius", self.theme.radius_md))
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        if handler:
+            spin.valueChanged.connect(
+                lambda v: None
+                if getattr(self, "_suppress", False)
+                else self.runtime.invoke(handler, v)
+            )
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            spin.valueChanged.connect(lambda v: self._push_state(bind, v))
+        if isinstance(value, str) and is_template(value):
+            def _set(v: Any) -> None:
+                self._suppress = True
+                try:
+                    spin.setValue(float(resolve_prop_value(v, self.scope, self.runtime)))
+                except (TypeError, ValueError):
+                    pass
+                finally:
+                    self._suppress = False
+            self.bind_state(value, _set)
+        self.widget = spin
+        return spin
+
+
+class DateTimePicker(Component):
+    """日期 + 时间：``<DateTimePicker value="{$when}" on_change="on_when"/>``。
+
+    值用 ISO 字符串（``2026-09-27T13:45``），比 ``<DatePicker>`` + ``<TimePicker>``
+    少一个控件。
+    """
+
+    def build(self) -> QDateTimeEdit:
+        edit = QDateTimeEdit()
+        fmt = self.opt_str("format", "yyyy-MM-dd HH:mm")
+        edit.setDisplayFormat(fmt)
+        edit.setCalendarPopup(self.opt_bool("calendar", True))
+        raw = self.opt_str("value", "")
+        if raw:
+            parsed = QDateTime.fromString(raw, Qt.DateFormat.ISODate)
+            if not parsed.isValid():
+                parsed = QDateTime.fromString(raw, fmt)
+            if parsed.isValid():
+                edit.setDateTime(parsed)
+        _style_dt_edit(edit, self.theme, self.opt_size(), self.opt_int("radius", self.theme.radius_md))
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        if handler:
+            edit.dateTimeChanged.connect(
+                lambda _v: None
+                if getattr(self, "_suppress", False)
+                else self.runtime.invoke(handler, edit.dateTime().toString(Qt.DateFormat.ISODate))
+            )
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            edit.dateTimeChanged.connect(
+                lambda _v: self._push_state(bind, edit.dateTime().toString(Qt.DateFormat.ISODate))
+            )
+        self.widget = edit
+        return edit
+
+
+class Dial(Component):
+    """旋钮：``<Dial min="0" max="100" value="{$vol}" on_change="on_vol"/>``。"""
+
+    def build(self) -> QWidget:
+        dial = QDial()
+        dial.setRange(self.opt_int("min", 0), self.opt_int("max", 100))
+        dial.setSingleStep(self.opt_int("step", 1))
+        dial.setNotchesVisible(self.opt_bool("notches", True))
+        dial.setValue(self.opt_int("value", 0))
+        size = self.opt_int("size", 64)
+        dial.setFixedSize(size, size)
+        theme = self.theme
+        dial.setStyleSheet(
+            f"QDial {{ background-color:{theme.surface}; }}"
+        )
+        label = None
+        if self.opt_bool("text", False):
+            box = QWidget()
+            lay = QVBoxLayout(box)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(4)
+            lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lay.addWidget(dial, 0, Qt.AlignmentFlag.AlignCenter)
+            label = QLabel(str(dial.value()))
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet(f"color:{theme.subtext}; font-size:{self.opt_size(12)}px;")
+            lay.addWidget(label)
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        if handler or label is not None:
+            def _on(v: int) -> None:
+                if label is not None:
+                    label.setText(str(v))
+                if handler and not getattr(self, "_suppress", False):
+                    self.runtime.invoke(handler, v)
+            dial.valueChanged.connect(_on)
+        bind = self._bind_key()
+        if bind:
+            self._suppress = False
+            dial.valueChanged.connect(lambda v: self._push_state(bind, v))
+        self.widget = box if label is not None else dial
+        return self.widget
+
+
+class LCD(Component):
+    """数字显示：``<LCD value="{$count}" digits="4"/>``。"""
+
+    def build(self) -> QLCDNumber:
+        lcd = QLCDNumber(self.opt_int("digits", 4))
+        lcd.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
+        theme = self.theme
+        color = self.opt_color("color", theme.accent)
+        lcd.setStyleSheet(f"QLCDNumber {{ background-color:{theme.surface}; color:{color};"
+                          f" border:1px solid {theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px; }}")
+        try:
+            lcd.display(int(self.opt_int("value", 0)))
+        except (TypeError, ValueError):
+            lcd.display(0)
+        value = self.props.get("value", None)
+        if isinstance(value, str) and is_template(value):
+            def _set(v: Any) -> None:
+                try:
+                    lcd.display(int(resolve_prop_value(v, self.scope, self.runtime)))
+                except (TypeError, ValueError):
+                    pass
+            self.bind_state(value, _set)
+        self.widget = lcd
+        return lcd
+
+
+class ColorPicker(Component):
+    """颜色选择：``<ColorPicker value="{$color}" on_change="on_color"/>``。
+
+    显示一个色块，点开是系统取色器；值用 ``#rrggbb``。
+    """
+
+    def build(self) -> QPushButton:
+        button = QPushButton()
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        size = self.opt_int("size", 34)
+        radius = self.opt_int("radius", self.theme.radius_md)
+        button.setFixedSize(size * 2, size)
+        self._color = self.opt_str("value", "#ffffff") or "#ffffff"
+        theme = self.theme
+        button.setStyleSheet(
+            f"QPushButton {{ background:{self._color}; border:1px solid {theme.border};"
+            f" border-radius:{radius}px; }}"
+            f"QPushButton:hover {{ border-color:{theme.accent}; }}"
+        )
+        handler = resolve_handler(self.props.get("on_change", None), self.scope, self.runtime)
+        bind = self._bind_key()
+
+        def _pick() -> None:
+            chosen = QColorDialog.getColor(QColor(self._color), button, self.opt_str("title", ""))
+            if not chosen.isValid():
+                return
+            self._apply(chosen.name())
+            if handler:
+                self.runtime.invoke(handler, chosen.name())
+            if bind:
+                self._push_state(bind, chosen.name())
+
+        button.clicked.connect(_pick)
+        value = self.props.get("value", None)
+        if isinstance(value, str) and is_template(value):
+            self.bind_state(value, lambda v: self._apply(str(resolve_prop_value(v, self.scope, self.runtime))))
+        self.widget = button
+        return button
+
+    def _apply(self, value: str) -> None:
+        self._color = value or "#ffffff"
+        theme = self.theme
+        radius = self.opt_int("radius", self.theme.radius_md)
+        assert isinstance(self.widget, QPushButton)
+        self.widget.setStyleSheet(
+            f"QPushButton {{ background:{self._color}; border:1px solid {theme.border};"
+            f" border-radius:{radius}px; }}"
+            f"QPushButton:hover {{ border-color:{theme.accent}; }}"
+        )
+
+
+class Tree(Component):
+    """树形列表：``<Tree items="{$nodes}" on_select="on_pick"/>``。
+
+    ``items`` 接受嵌套结构：``[{"label": "根", "items": [...]}]``，
+    也接受扁平字符串列表（都挂在顶层）。
+    """
+
+    def build(self) -> QTreeWidget:
+        tree = QTreeWidget()
+        headers = self.opt_str("headers", "")
+        if headers:
+            tree.setHeaderLabels([h.strip() for h in headers.split(",")])
+        else:
+            tree.setHeaderHidden(True)
+        tree.setIndentation(self.opt_int("indent", 16))
+        height = self.opt_int("height", 0)
+        if height:
+            tree.setFixedHeight(height)
+        theme = self.theme
+        tree.setStyleSheet(
+            f"QTreeWidget {{ background-color:{theme.surface}; color:{theme.text};"
+            f" border:1px solid {theme.border}; border-radius:{self.opt_int('radius', self.theme.radius_md)}px;"
+            f" font-size:{self.opt_size()}px; outline:none; }}"
+            f"QTreeWidget::item {{ padding:5px 4px; }}"
+            f"QTreeWidget::item:selected {{ background-color:{theme.accent}; color:{theme.background}; }}"
+            f"QHeaderView::section {{ background-color:{theme.background}; color:{theme.subtext};"
+            f" padding:6px 8px; border:none; border-bottom:1px solid {theme.border}; font-weight:600; }}"
+        )
+        self._fill(tree, resolve_raw(self.props.get("items", []), self.scope, self.runtime))
+        handler = resolve_handler(self.props.get("on_select", None), self.scope, self.runtime)
+        bind = self._bind_key()
+        if handler or bind:
+            tree.itemSelectionChanged.connect(lambda: self._picked(tree, handler, bind))
+        items_prop = self.props.get("items", None)
+        if isinstance(items_prop, str) and is_template(items_prop):
+            for name in collect_refs(items_prop, self.scope, self.runtime):
+                self.watch_state(
+                    name,
+                    lambda _: self._fill(tree, resolve_raw(items_prop, self.scope, self.runtime)),
+                )
+        self.widget = tree
+        return tree
+
+    @staticmethod
+    def _fill(tree: QTreeWidget, items: Any) -> None:
+        tree.clear()
+        def add(parent: Any, nodes: Any) -> None:
+            if not isinstance(nodes, (list, tuple)):
+                return
+            for node in nodes:
+                if isinstance(node, dict):
+                    label = str(node.get("label", node.get("text", "")))
+                    children = node.get("items", node.get("children", []))
+                else:
+                    label, children = str(node), []
+                item = QTreeWidgetItem([label])
+                if parent is None:
+                    tree.addTopLevelItem(item)
+                else:
+                    parent.addChild(item)
+                add(item, children)
+        add(None, items)
+        tree.expandAll()
+
+    def _picked(self, tree: QTreeWidget, handler: Any, bind: str) -> None:
+        selected = tree.selectedItems()
+        if not selected:
+            return
+        text = selected[0].text(0)
+        if handler:
+            self.runtime.invoke(handler, text)
+        if bind:
+            self._push_state(bind, text)
+
+
+def _style_spinbox(spin: QDoubleSpinBox, theme: Any, font_size: int, radius: int) -> None:
+    spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.UpDownArrows)
+    spin.setStyleSheet(
+        f"QDoubleSpinBox {{ background-color:{theme.surface}; color:{theme.text};"
+        f" border:1px solid {theme.border}; border-radius:{radius}px;"
+        f" padding:6px 8px; font-size:{font_size}px; }}"
+        f"QDoubleSpinBox:focus {{ border:2px solid {theme.accent}; }}"
+    )
+
+
+def _style_dt_edit(edit: QDateTimeEdit, theme: Any, font_size: int, radius: int) -> None:
+    edit.setStyleSheet(
+        f"QDateTimeEdit {{ background-color:{theme.surface}; color:{theme.text};"
+        f" border:1px solid {theme.border}; border-radius:{radius}px;"
+        f" padding:6px 8px; font-size:{font_size}px; }}"
+        f"QDateTimeEdit:focus {{ border:2px solid {theme.accent}; }}"
+        f"QDateTimeEdit::drop-down {{ border:none; width:18px; }}"
+    )
+
+
 EXTRA_BUILTINS: dict[str, type[Component]] = {
     "Radio": Radio,
     "RadioGroup": RadioGroup,
@@ -1268,6 +1705,14 @@ EXTRA_BUILTINS: dict[str, type[Component]] = {
     "Canvas": Canvas,
     "VirtualList": VirtualList,
     "Shortcut": Shortcut,
+    "Alert": Alert,
+    "GroupBox": GroupBox,
+    "DoubleInput": DoubleInput,
+    "DateTimePicker": DateTimePicker,
+    "Dial": Dial,
+    "LCD": LCD,
+    "ColorPicker": ColorPicker,
+    "Tree": Tree,
 }
 
 #: 全量组件注册表：runtime 只认这一份

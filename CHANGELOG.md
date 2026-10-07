@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.1.3.5] - 2026-10-07
+
+### 新增
+- **8 个新组件**（都是 Qt 本来就有、之前没暴露的）：`<Alert>` 行内提示条、
+  `<GroupBox>` 带标题分组、`<DoubleInput>` 浮点输入、`<DateTimePicker>` 日期+时间、
+  `<ColorPicker>` 取色、`<Dial>` 旋钮、`<LCD>` 数码显示、`<Tree>` 树形列表。
+  组件总数 **44 → 52**。
+- **`<Window>` 支持菜单栏**：`Window` 改用 `QMainWindow`，因此可以用
+  `menuBar()`；内容区仍是普通容器（`centralWidget`），布局行为不变。
+- **主题 token 扩充成一套设计系统**（纯加法，旧字段全部保留）：
+
+  | 类别 | 新增 |
+  | --- | --- |
+  | 状态色 | `success` / `warning` / `info`（进 `COLOR_FIELDS`，可当令牌名用） |
+  | 层次色 | `surface_raised` / `surface_sunken` / `surface_hover` / `surface_active`（留空自动按明暗推导） |
+  | 圆角分级 | `radius_sm=6` / `radius_md=10` / `radius_lg=16` |
+  | 字号分级 | `font_xs=11` / `font_sm` / `font_md=13` / `font_lg=15` / `font_xl=20` |
+  | 字重 | `weight_normal/medium/semibold` |
+  | 间距刻度 | `space_xs=4` / `space_sm` / `space_md=12` / `space_lg=16` / `space_xl=24` |
+  | 投影 | `shadow` / `shadow_blur` / `shadow_offset_y` / `shadow_color` |
+  | 对比色 | `on_accent`（默认按主色明暗自动选黑/白） |
+
+### 修复
+- **`bg="{$token}"` 这类动态取主题色会静默失效**：`resolve_color()` 对模板
+  **提前 return**，不再做令牌查表 —— 于是 `<Column bg="{$token}"/>`（token 取
+  `"accent"`）拿到的是裸字符串 `"accent"`，Qt 当非法颜色整条丢弃，界面没上色、
+  只在 stderr 留一条 `unknown color 'accent'`。现在模板解析出的字符串会**再过一次
+  令牌查表**。showcase 里的 8 条 `unknown color` 警告随之归零。
+- **`<Window>` 的内容布局访问方式变了**：`rt.root` 现在是 `QMainWindow`，
+  内容布局在 `centralWidget()` 上；`Window` 新增 `body` 属性指过去。
+
+### 改进
+- **`theme.qss()` 重写**：补上以前完全没有规则的控件（`QRadioButton` / `QSlider` /
+  `QProgressBar` / `QGroupBox` / `QTabBar` / `QMenuBar` / `QToolTip` / 数据视图 /
+  日历），统一 hover / focus / disabled 态，颜色全部走 token（不再散落硬编码
+  `#ffffff`）。滚动条、弹出层等既有规则保持不变。
+- **组件圆角改成读分级 token**：`components.py` / `widgets.py` 里 50 处硬编码圆角
+  （`10` / `8` / `9` / `12` / `17` / `24`…）统一换成 `theme.radius_sm/md/lg`，
+  容器的默认圆角从 `radius`（24，偏大）降到 `radius_md`。
+- **容器可选投影**：新增 `apply_shadow()`，`Panel` / `GroupBox` / `Dialog` / `Alert`
+  支持 `shadow="true"`（Qt 没有 CSS 的 `box-shadow`，用 `QGraphicsDropShadowEffect`）。
+- **`<Alert>` 配色改为读主题状态色**，不再硬编码 `#22c55e` / `#f59e0b`，和
+  `app.toast()` 的 kind 配色统一。
+- `example/showcase.paw` 补上 8 个新组件（表单页加 DoubleInput / DateTimePicker /
+  ColorPicker，数据页加 Tree，交互页加 Alert ×4 / GroupBox / Dial / LCD / 带投影分组）。
+
+### 文档
+- 新增 `docs/component-extra-fields.md` + 中文版：8 个新组件的属性表与用法。
+- `README.md`：组件数 44 → 52，组件表补 8 个（新增「反馈」一行）。
+- `AI_PROMPT.md`：组件表同步补 8 行。
+- 站点 `build.py` 的 `GROUPS` 注册新文档；`index.html` 三处数字（hero 徽标 /
+  stats 卡片 / 组件区标题）44 → 52，组件卡片列表补 8 个。
+
 ## [0.1.3.4] - 2026-10-07
 
 ### 修复

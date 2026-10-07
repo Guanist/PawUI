@@ -197,7 +197,9 @@ class TestWindowRootLayout:
           <Column id="host"><Text>a</Text></Column>
         </Window>
         """, qapp)
-        layout = rt.root.layout()
+        # 0.1.3.4 起 Window 是 QMainWindow（为了菜单栏），内容布局挂在 centralWidget 上
+        body = rt.root.centralWidget()
+        layout = body.layout()
         assert layout.count() == 1, "根布局里不该有额外的弹簧"
         assert layout.itemAt(0).widget() is rt.root.findChild(QWidget, "host")
         rt.root.close()
