@@ -39,6 +39,7 @@ from .nodes import Element
 from .resolve import (
     collect_refs,
     is_template,
+    resolve_color,
     resolve_handler,
     resolve_prop_value,
     resolve_raw,
@@ -476,7 +477,8 @@ class Component:
         return _truthy(resolve_prop_value(self.props.get(key, default), self.scope, self.runtime))
 
     def opt_color(self, key: str, default: str) -> str:
-        value = str(resolve_prop_value(self.props.get(key, default), self.scope, self.runtime))
+        # 颜色属性是唯一允许「裸字符串 = 主题令牌名 / 自定义色名」的地方
+        value = str(resolve_color(self.props.get(key, default), self.scope, self.runtime))
         if value and not QColor(value).isValid():
             self.runtime.warn_unknown_color(value, self.element.tag, key)
         return value
