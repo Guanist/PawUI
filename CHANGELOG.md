@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.3.5.1] - 2026-10-09
+
+### 许可证
+- **GPL-3.0-or-later → LGPL-3.0-or-later**。用 PawUI 做的程序现在**可以闭源发布**，
+  代价是要（1）声明用了 PawUI 并附带 `LICENSE` + `COPYING`，（2）允许用户替换这个库
+  （Python 包天然满足）。
+  换它的主要理由：**和 PySide6 一致**（它自己就是 LGPL-3.0），不额外给使用者加负担。
+  文件结构：`LICENSE` = LGPL-3.0，`COPYING` = 它引用的 GPL-3.0。
+- `docs/packaging.md` + 中文版新增「打包后要闭源？先看许可证」一节，并把它加进
+  分发清单；`README.md` 新增「许可证」一节。
+
+### 文档
+- `pyproject.toml` 的 `description` 改成**英文前置**（GitHub search 主要按英文索引）：
+  `Declarative UI for Python — HTML-like .paw files, native Qt/PySide6 widgets, no build step.`
+
 ## [0.1.3.5] - 2026-10-07
 
 ### 新增

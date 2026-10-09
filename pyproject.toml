@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pawui"
-version = "0.1.3.5"
-description = "轻量、直接运行的 Python 声明式 UI 层"
+version = "0.1.3.5.1"
+description = "Declarative UI for Python — HTML-like .paw files, native Qt/PySide6 widgets, no build step. 轻量、直接运行的 Python 声明式 UI 层。"
 readme = "README.md"
-license = "GPL-3.0-or-later"
-license-files = ["LICENSE"]
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSE", "COPYING"]
 requires-python = ">=3.10"
 dependencies = ["PySide6>=6.5"]
 classifiers = [

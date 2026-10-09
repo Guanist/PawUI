@@ -28,4 +28,4 @@ __all__ = [
     "RenderError",
     "ScriptError",
 ]
-__version__ = "0.1.3.5"
+__version__ = "0.1.3.5.1"

@@ -160,6 +160,21 @@ pawui --version
 `PAWUI_DOCS_OFFLINE=1` 强制离线，`PAWUI_DOCS_LANG=zh|en` 指定语言。
 
 
+## 许可证
+
+**LGPL-3.0-or-later**（`LICENSE` 为 LGPL-3.0，`COPYING` 为它引用的 GPL-3.0）。
+
+一句话：**你可以把用 PawUI 做的程序闭源发布**，但要
+
+1. **声明**你的程序用了 PawUI（About 框 / README 写一行），并随程序附带
+   `LICENSE` 与 `COPYING`；
+2. **允许用户替换**这个库 —— PawUI 是普通 Python 包，只要别静态焊死进可执行
+   文件，这条天然满足。
+
+和 PySide6（同样 LGPL-3.0）一致 —— 所以你并没有在 Qt 已有的要求之上多承担什么。
+
+不想受这些约束，就用宽松许可的 UI 库。
+
 ## 发版
 
 凭据放在仓库外（仓库是公开的）：`~/.pypirc` 存 PyPI 令牌，
